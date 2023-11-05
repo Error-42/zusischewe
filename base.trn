@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Zusi>
+<Info DateiTyp="Zug" Version="A.4" MinVersion="A.1">
+<AutorEintrag AutorID="34" AutorName="Holger Lürkens"/>
+</Info>
+<Zug Gattung="CNL" Nummer="418" Zuglauf="München Hbf - Amsterdam CS" BRAngabe="189" Prio="4000" BremsstellungZug="4" MBrh="1.49" spZugNiedriger="38.8889" APBeschl="0.27" LODzug="3" ReisendenDichte="0.5" FahrplanGruppe="1a. Fernzüge Köln - Düsseldorf" Rekursionstiefe="5" FahrstrName="Aufgleispunkt -&gt; Köln Hbf 022 -&gt; Köln Hbf 021" Zugtyp="1" BuchfahrplanEinfach="1" Buchfahrplandll="_InstSetup\lib\timetable\Buchfahrplan_DB_2006.dll">
+<Datei Dateiname="Timetables\Deutschland\Koeln_Duesseldorf_schlect_wetter.fpn" NurInfo="1"/>
+<BuchfahrplanRohDatei Dateiname="Timetables\Deutschland\Koeln_Duesseldorf_schlect_wetter\CNL418.timetable.xml"/>
+<FahrplanEintrag Ank="2016-05-20 06:15:00" Abf="2016-05-20 06:26:00" Betrst="Köln Hbf">
+<FahrplanSignalEintrag FahrplanSignal="021"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:27:00" Betrst="Köln Messe/Deutz">
+<FahrplanSignalEintrag FahrplanSignal="A"/>
+<FahrplanSignalEintrag FahrplanSignal="B"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:28:00" Betrst="Köln Messe/Deutz">
+<FahrplanSignalEintrag FahrplanSignal="N3"/>
+<FahrplanSignalEintrag FahrplanSignal="N2"/>
+<FahrplanSignalEintrag FahrplanSignal="N1"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:32:00" Betrst="K-Mülheim">
+<FahrplanSignalEintrag FahrplanSignal="N003"/>
+<FahrplanSignalEintrag FahrplanSignal="N005"/>
+<FahrplanSignalEintrag FahrplanSignal="N004"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:34:00" Betrst="Abzw Berliner Straße">
+<FahrplanSignalEintrag FahrplanSignal="T503"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:35:00" Betrst="Abzw Bruder Klaus Siedlung">
+<FahrplanSignalEintrag FahrplanSignal="332"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:35:30" Betrst="Sbk 611">
+<FahrplanSignalEintrag FahrplanSignal="611"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:36:00" Betrst="Sbk 613">
+<FahrplanSignalEintrag FahrplanSignal="613"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:37:00" Betrst="Sbk 617">
+<FahrplanSignalEintrag FahrplanSignal="617"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:38:00" Betrst="Bft Leverkusen Mitte">
+<FahrplanSignalEintrag FahrplanSignal="R605"/>
+<FahrplanSignalEintrag FahrplanSignal="N603"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:38:30" Betrst="Leverkusen">
+<FahrplanSignalEintrag FahrplanSignal="N625"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:39:00" Betrst="Sbk 135">
+<FahrplanSignalEintrag FahrplanSignal="135"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:40:00" Betrst="Sbk 137">
+<FahrplanSignalEintrag FahrplanSignal="137"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:41:00" Betrst="Langenfeld">
+<FahrplanSignalEintrag FahrplanSignal="N10"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:42:30" Betrst="Sbk 145">
+<FahrplanSignalEintrag FahrplanSignal="145"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:43:30" Betrst="Sbk 349">
+<FahrplanSignalEintrag FahrplanSignal="349"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:44:30" Betrst="Sbk 353">
+<FahrplanSignalEintrag FahrplanSignal="353"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:45:00" Betrst="D-Benrath Hp"/>
+<FahrplanEintrag Abf="2016-05-20 06:45:30" Betrst="Sbk 355">
+<FahrplanSignalEintrag FahrplanSignal="355"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:46:00" Betrst="Abzw D-Reisholz">
+<FahrplanSignalEintrag FahrplanSignal="B357"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:46:30" Betrst="Sbk 363">
+<FahrplanSignalEintrag FahrplanSignal="363"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:47:30" Betrst="Sbk 367">
+<FahrplanSignalEintrag FahrplanSignal="367"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:48:00" Betrst="Abzw Berg">
+<FahrplanSignalEintrag FahrplanSignal="591"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:49:00" Betrst="Abzw Emma">
+<FahrplanSignalEintrag FahrplanSignal="593"/>
+</FahrplanEintrag>
+<FahrplanEintrag Abf="2016-05-20 06:50:00" Betrst="Düsseldorf Hbf">
+<FahrplanSignalEintrag FahrplanSignal="E171"/>
+</FahrplanEintrag>
+<FahrplanEintrag Ank="2016-05-20 06:51:30" Abf="2016-05-20 06:56:00" Betrst="Düsseldorf Hbf">
+<FahrplanSignalEintrag FahrplanSignal="N176"/>
+<FahrplanSignalEintrag FahrplanSignal="N180"/>
+<FahrplanSignalEintrag FahrplanSignal="N190"/>
+</FahrplanEintrag>
+<FahrzeugVarianten Bezeichnung="default" ZufallsWert="1">
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1994 025-2">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Avmz111.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="61 80 2094 207-3">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bpmz291.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="51 80 22-90 288-7">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 587-6">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 524-9">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="51 80 22-90 055-1">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 530-6">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 502-5">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="61 80 1890 506-6">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="51 80 22-90 340-6">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="51 80 22-90 146-7">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 512-4">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 525-6">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugVarianten Bezeichnung="Lok" PerZufallUebernehmen="1" ZufallsWert="1">
+<FahrzeugInfo IDHaupt="2" IDNeben="1" SASchaltung="2" NVRNummer="91 80 6189 907-9">
+<Datei Dateiname="RollingStock\Deutschland\Epoche5\Elektroloks\ES64F4\ES64F4.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="2" IDNeben="1" SASchaltung="2" Gedreht="1">
+<Datei Dateiname="RollingStock\Deutschland\Epoche5\Elektroloks\ES64F4\ES64F4.rv.fzg"/>
+</FahrzeugInfo>
+</FahrzeugVarianten>
+<FahrzeugVarianten Bezeichnung="Wagen 3" PerZufallUebernehmen="1" ZufallsWert="1" FzgPosition="3">
+<FahrzeugInfo IDHaupt="4" IDNeben="1" NVRNummer="61 80 2094 271-9">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bpmz291.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+</FahrzeugVarianten>
+<FahrzeugVarianten Bezeichnung="Wagen 14" PerZufallUebernehmen="1" ZufallsWert="1" FzgPosition="14">
+<FahrzeugInfo IDHaupt="5" IDNeben="1" NVRNummer="61 80 1890 581-9">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Apmz122.rv.fzg"/>
+</FahrzeugInfo>
+<FahrzeugInfo IDHaupt="4" IDNeben="1">
+<Datei Dateiname="RollingStock\Deutschland\Epoche3\Reisezugwagen\BRD\IC\Bm235.rv.fzg"/>
+</FahrzeugInfo>
+</FahrzeugVarianten>
+</FahrzeugVarianten>
+</Zug>
+</Zusi>
