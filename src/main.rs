@@ -4,7 +4,7 @@ use argh::FromArgs;
 use fs_extra::dir;
 use xmltree::Element;
 
-/// ZuSi schlecht Wetter v2.0.0
+/// ZuSi schlecht Wetter v2.0.1
 /// 
 /// Modify the acceleration of all trains.
 #[derive(FromArgs, Debug)]
@@ -45,7 +45,12 @@ fn modify_file(path: &Path, multiplier: f32) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(path)?;
 
     let mut tree = Element::parse(contents.as_bytes())?;
-    let apbeschl = tree.get_mut_child("Zug").unwrap().attributes.get_mut("APBeschl").unwrap();
+    let apbeschl = tree
+        .get_mut_child("Zug")
+        .ok_or("no tag 'Zug'")?
+        .attributes
+        .get_mut("APBeschl")
+        .ok_or("no attribute 'APBeschl'")?;
 
     let decel: f32 = apbeschl.parse()?;
     
@@ -77,7 +82,8 @@ fn modify(cmd: Modify) {
             continue;
         }
 
-        modify_file(&path, cmd.multiplier).unwrap();
+        let _ = modify_file(&path, cmd.multiplier)
+            .inspect_err(|e| eprintln!("failed file modification, path: {}, reason: {:?}", path.to_string_lossy(), e));
     }
 }
 
