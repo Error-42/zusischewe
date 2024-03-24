@@ -1,43 +1,40 @@
 use std::{path::{Path, PathBuf}, fs::{self, File}, error::Error, ffi::OsStr};
 
-use argh::FromArgs;
+use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use xmltree::Element;
 
-/// ZuSi schlecht Wetter v2.0.1
+/// ZuSi schlecht Wetter
 /// 
 /// Modify the acceleration of all trains.
-#[derive(FromArgs, Debug)]
-struct Command {
-    #[argh(subcommand)]
-    subcommand: Subcommand,
+#[derive(Debug, Parser)]
+#[clap(version)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
 }
 
-#[derive(FromArgs, Debug)]
-#[argh(subcommand)]
-enum Subcommand {
+#[derive(Debug, Subcommand)]
+enum Command {
+    #[command(visible_alias = "m")]
     Modify(Modify),
+    #[command(visible_alias = "r")]
     Reset(Reset),
 }
 
 /// Modify the acceleration of all trains.
-#[derive(FromArgs, Debug)]
-#[argh(subcommand, name = "modify")]
+#[derive(Debug, Parser)]
 struct Modify {
-    #[argh(positional)]
     directory: PathBuf,
-    #[argh(positional)]
     multiplier: f32,
     /// do not create `_zsw` folder used for resetting
-    #[argh(switch, short = 'n')]
+    #[arg(short = 'n', long, action)]
     no_copy: bool,
 }
 
 /// Reset the acceleration of all trains.
-#[derive(FromArgs, Debug)]
-#[argh(subcommand, name = "reset")]
+#[derive(Debug, Parser)]
 struct Reset {
-    #[argh(positional)]
     directory: PathBuf,
 }
 
@@ -95,10 +92,10 @@ fn reset(cmd: Reset) {
 }
 
 fn main() {
-    let cmd: Command = argh::from_env();
+    let cli = Cli::parse();
 
-    match cmd.subcommand {
-        Subcommand::Modify(cmd) => modify(cmd),
-        Subcommand::Reset(cmd) => reset(cmd),
+    match cli.command {
+        Command::Modify(cmd) => modify(cmd),
+        Command::Reset(cmd) => reset(cmd),
     }
 }
