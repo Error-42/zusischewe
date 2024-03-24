@@ -15,12 +15,7 @@ impl Display for Datetime {
         write!(
             f,
             "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year,
-            self.month,
-            self.day,
-            self.hour,
-            self.minute,
-            self.second,
+            self.year, self.month, self.day, self.hour, self.minute, self.second,
         )
     }
 }
@@ -55,16 +50,14 @@ impl FromStr for Datetime {
         let minute = time[1].parse()?;
         let second = time[2].parse()?;
 
-        Ok(
-            Datetime {
-                year,
-                month,
-                day,
-                hour,
-                minute,
-                second,
-            }
-        )
+        Ok(Datetime {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+        })
     }
 }
 
