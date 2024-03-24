@@ -1,4 +1,9 @@
-use std::{error::Error, ffi::OsStr, fs::{self, File}, path::{Path, PathBuf}};
+use std::{
+    error::Error,
+    ffi::OsStr,
+    fs::{self, File},
+    path::{Path, PathBuf},
+};
 
 use clap::{Parser, Subcommand};
 use fs_extra::dir;
@@ -10,7 +15,7 @@ use crate::date::Datetime;
 mod date;
 
 /// ZuSi schlechtes Wetter
-/// 
+///
 /// Modify the acceleration of all trains.
 #[derive(Debug, Parser)]
 #[clap(version)]
@@ -78,7 +83,7 @@ fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
                     return Ok(());
                 }
             }
-            _ => {},
+            _ => {}
         }
     }
 
@@ -87,7 +92,7 @@ fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
 
 fn read_file(path: &Path) -> Result<Element, Box<dyn Error>> {
     let contents = fs::read_to_string(path)?;
-    
+
     Ok(Element::parse(contents.as_bytes())?)
 }
 
@@ -97,9 +102,13 @@ fn write_file(path: &Path, tree: Element) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn modify_file(path: &Path, modify: &Modify, rng: &mut rand::rngs::ThreadRng) -> Result<(), Box<dyn Error>> {
+fn modify_file(
+    path: &Path,
+    modify: &Modify,
+    rng: &mut rand::rngs::ThreadRng,
+) -> Result<(), Box<dyn Error>> {
     let mut tree = read_file(path)?;
-    
+
     if let Some(multiplier) = modify.multiplier {
         modify_multiplier(&mut tree, multiplier)?;
     }
@@ -130,7 +139,12 @@ fn modify(cmd: Modify) {
         let to = copy_name(&cmd.directory);
 
         dir::create(to.clone(), false).unwrap();
-        dir::copy(cmd.directory.clone(), to, &dir::CopyOptions::new().content_only(true)).unwrap();
+        dir::copy(
+            cmd.directory.clone(),
+            to,
+            &dir::CopyOptions::new().content_only(true),
+        )
+        .unwrap();
     }
 
     let mut rng = rand::thread_rng();
@@ -142,8 +156,13 @@ fn modify(cmd: Modify) {
             continue;
         }
 
-        let _ = modify_file(&path, &cmd, &mut rng)
-            .inspect_err(|e| eprintln!("failed file modification, path: {}, reason: {:?}", path.to_string_lossy(), e));
+        let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|e| {
+            eprintln!(
+                "failed file modification, path: {}, reason: {:?}",
+                path.to_string_lossy(),
+                e
+            )
+        });
     }
 }
 
@@ -151,7 +170,12 @@ fn reset(cmd: Reset) {
     let zsw_dir = copy_name(&cmd.directory);
 
     dir::create(cmd.directory.clone(), true).unwrap();
-    dir::move_dir(zsw_dir, cmd.directory, &dir::CopyOptions::new().content_only(true)).unwrap();
+    dir::move_dir(
+        zsw_dir,
+        cmd.directory,
+        &dir::CopyOptions::new().content_only(true),
+    )
+    .unwrap();
 }
 
 fn main() {
