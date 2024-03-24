@@ -125,8 +125,8 @@ fn modify_file(
     Ok(())
 }
 
-fn copy_name(dir: &PathBuf) -> PathBuf {
-    let mut to = dir.clone();
+fn copy_name(dir: &Path) -> PathBuf {
+    let mut to = dir.to_path_buf();
     to.as_mut_os_string().push("_zsw");
     to
 }
