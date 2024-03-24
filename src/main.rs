@@ -68,22 +68,19 @@ fn modify_multiplier(tree: &mut Element, multiplier: f32) -> Result<(), Box<dyn 
 
 fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
     for child in &mut tree.get_mut_child("Zug").ok_or("no tag `Zug`")?.children {
-        match child {
-            XMLNode::Element(e) => {
-                if e.name == "FahrplanEintrag" {
-                    let ankunft = e
-                        .attributes
-                        .get_mut("Ank")
-                        .ok_or("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
+        if let XMLNode::Element(e) = child {
+            if e.name == "FahrplanEintrag" {
+                let ankunft = e
+                    .attributes
+                    .get_mut("Ank")
+                    .ok_or("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
 
-                    let mut datetime: Datetime = ankunft.parse()?;
-                    datetime.inc_seconds(3600);
-                    *ankunft = datetime.to_string();
+                let mut datetime: Datetime = ankunft.parse()?;
+                datetime.inc_seconds(3600);
+                *ankunft = datetime.to_string();
 
-                    return Ok(());
-                }
+                return Ok(());
             }
-            _ => {}
         }
     }
 
