@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use xmltree::Element;
 
-/// ZuSi schlecht Wetter
+/// ZuSi schlechtes Wetter
 /// 
 /// Modify the acceleration of all trains.
 #[derive(Debug, Parser)]
