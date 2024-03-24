@@ -1,8 +1,13 @@
-use std::{path::{Path, PathBuf}, fs::{self, File}, error::Error, ffi::OsStr};
+use std::{error::Error, ffi::OsStr, fs::{self, File}, path::{Path, PathBuf}};
 
 use clap::{Parser, Subcommand};
 use fs_extra::dir;
-use xmltree::Element;
+use rand::Rng;
+use xmltree::{Element, XMLNode};
+
+use crate::date::Datetime;
+
+mod date;
 
 /// ZuSi schlechtes Wetter
 /// 
@@ -26,7 +31,10 @@ enum Command {
 #[derive(Debug, Parser)]
 struct Modify {
     directory: PathBuf,
-    multiplier: f32,
+    #[arg(short = 'm', long)]
+    multiplier: Option<f32>,
+    #[arg(long)]
+    delay_probability: Option<f32>,
     /// do not create `_zsw` folder used for resetting
     #[arg(short = 'n', long, action)]
     no_copy: bool,
@@ -53,14 +61,60 @@ fn modify_multiplier(tree: &mut Element, multiplier: f32) -> Result<(), Box<dyn 
     Ok(())
 }
 
-fn modify_file(path: &Path, multiplier: f32) -> Result<(), Box<dyn Error>> {
+fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
+    for child in &mut tree.get_mut_child("Zug").ok_or("no tag `Zug`")?.children {
+        match child {
+            XMLNode::Element(e) => {
+                if e.name == "FahrplanEintrag" {
+                    let ankunft = e
+                        .attributes
+                        .get_mut("Ank")
+                        .ok_or("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
+
+                    let mut datetime: Datetime = ankunft.parse()?;
+                    datetime.inc_seconds(3600);
+                    *ankunft = datetime.to_string();
+
+                    return Ok(());
+                }
+            }
+            _ => {},
+        }
+    }
+
+    Err("no `FahrplanEintrag` entry inside `Zug`".into())
+}
+
+fn read_file(path: &Path) -> Result<Element, Box<dyn Error>> {
     let contents = fs::read_to_string(path)?;
-
-    let mut tree = Element::parse(contents.as_bytes())?;
     
-    modify_multiplier(&mut tree, multiplier)?;
+    Ok(Element::parse(contents.as_bytes())?)
+}
 
+fn write_file(path: &Path, tree: Element) -> Result<(), Box<dyn Error>> {
     tree.write(File::create(path)?)?;
+
+    Ok(())
+}
+
+fn modify_file(path: &Path, modify: &Modify, rng: &mut rand::rngs::ThreadRng) -> Result<(), Box<dyn Error>> {
+    let mut tree = read_file(path)?;
+    
+    if let Some(multiplier) = modify.multiplier {
+        modify_multiplier(&mut tree, multiplier)?;
+    }
+
+    if let Some(p) = modify.delay_probability {
+        let val: f32 = rng.gen();
+
+        dbg!(&val, val < p);
+
+        if val < p {
+            delay(&mut tree)?;
+        }
+    }
+
+    write_file(path, tree)?;
 
     Ok(())
 }
@@ -79,14 +133,16 @@ fn modify(cmd: Modify) {
         dir::copy(cmd.directory.clone(), to, &dir::CopyOptions::new().content_only(true)).unwrap();
     }
 
-    for file in fs::read_dir(cmd.directory).unwrap() {
+    let mut rng = rand::thread_rng();
+
+    for file in fs::read_dir(&cmd.directory).unwrap() {
         let path = file.unwrap().path();
 
         if path.extension() != Some(OsStr::new("trn")) {
             continue;
         }
 
-        let _ = modify_file(&path, cmd.multiplier)
+        let _ = modify_file(&path, &cmd, &mut rng)
             .inspect_err(|e| eprintln!("failed file modification, path: {}, reason: {:?}", path.to_string_lossy(), e));
     }
 }
