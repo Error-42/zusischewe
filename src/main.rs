@@ -38,10 +38,7 @@ struct Reset {
     directory: PathBuf,
 }
 
-fn modify_file(path: &Path, multiplier: f32) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(path)?;
-
-    let mut tree = Element::parse(contents.as_bytes())?;
+fn modify_multiplier(tree: &mut Element, multiplier: f32) -> Result<(), Box<dyn Error>> {
     let apbeschl = tree
         .get_mut_child("Zug")
         .ok_or("no tag 'Zug'")?
@@ -50,8 +47,18 @@ fn modify_file(path: &Path, multiplier: f32) -> Result<(), Box<dyn Error>> {
         .ok_or("no attribute 'APBeschl'")?;
 
     let decel: f32 = apbeschl.parse()?;
-    
+
     *apbeschl = (multiplier * decel).to_string();
+
+    Ok(())
+}
+
+fn modify_file(path: &Path, multiplier: f32) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(path)?;
+
+    let mut tree = Element::parse(contents.as_bytes())?;
+    
+    modify_multiplier(&mut tree, multiplier)?;
 
     tree.write(File::create(path)?)?;
 
