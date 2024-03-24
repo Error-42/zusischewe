@@ -113,8 +113,6 @@ fn modify_file(
     if let Some(p) = modify.delay_probability {
         let val: f32 = rng.gen();
 
-        dbg!(&val, val < p);
-
         if val < p {
             delay(&mut tree)?;
         }
