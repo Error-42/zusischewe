@@ -38,8 +38,12 @@ struct Modify {
     directory: PathBuf,
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
-    #[arg(long)]
+    #[arg(alias = "dp", long)]
     delay_probability: Option<f32>,
+    #[arg(alias = "da", long, default_value = "360")]
+    delay_amplitude: f32,
+    #[arg(alias = "dl", long, default_value = "3")]
+    delay_lambda: f32,
     /// do not create `_zsw` folder used for resetting
     #[arg(short = 'n', long, action)]
     no_copy: bool,
@@ -66,7 +70,7 @@ fn modify_multiplier(tree: &mut Element, multiplier: f32) -> Result<(), Box<dyn 
     Ok(())
 }
 
-fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
+fn delay(tree: &mut Element, seconds: u32) -> Result<(), Box<dyn Error>> {
     for child in &mut tree.get_mut_child("Zug").ok_or("no tag `Zug`")?.children {
         if let XMLNode::Element(e) = child {
             if e.name == "FahrplanEintrag" {
@@ -76,7 +80,7 @@ fn delay(tree: &mut Element) -> Result<(), Box<dyn Error>> {
                     .ok_or("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
 
                 let mut datetime: Datetime = ankunft.parse()?;
-                datetime.inc_seconds(3600);
+                datetime.inc_seconds(seconds);
                 *ankunft = datetime.to_string();
 
                 return Ok(());
@@ -114,7 +118,9 @@ fn modify_file(
         let val: f32 = rng.gen();
 
         if val < p {
-            delay(&mut tree)?;
+            let seconds = modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+
+            delay(&mut tree, seconds as u32)?;
         }
     }
 
