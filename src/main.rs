@@ -132,15 +132,16 @@ fn modify_file(
     Ok(())
 }
 
-fn copy_name(dir: &Path) -> PathBuf {
-    let mut to = dir.to_path_buf();
-    to.as_mut_os_string().push("_zsw");
-    to
+fn copy_name(dir: &Path) -> Option<PathBuf> {
+    let mut file_name = dir.file_name()?.to_os_string();
+    file_name.push("_zsw");
+    Some(dir.with_file_name(file_name))
 }
 
 fn modify(cmd: Modify) {
     if !cmd.no_copy {
-        let to = copy_name(&cmd.directory);
+        let to = copy_name(&cmd.directory).unwrap();
+        dbg!(&to);
 
         dir::create(to.clone(), false).unwrap();
         dir::copy(
@@ -173,7 +174,7 @@ fn modify(cmd: Modify) {
 }
 
 fn reset(cmd: Reset) {
-    let zsw_dir = copy_name(&cmd.directory);
+    let zsw_dir = copy_name(&cmd.directory).unwrap();
 
     dir::create(cmd.directory.clone(), true).unwrap();
     dir::move_dir(
