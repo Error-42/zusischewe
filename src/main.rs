@@ -78,7 +78,7 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
                     .context("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
 
                 let arrival: chrono::NaiveDateTime =
-                    chrono::NaiveDateTime::parse_from_str(&ankunft, "%Y-%m-%d %H:%M:%S")
+                    chrono::NaiveDateTime::parse_from_str(ankunft, "%Y-%m-%d %H:%M:%S")
                     .context("parsing arrival time")?;
                 let delayed = arrival
                     .checked_add_signed(chrono::TimeDelta::seconds(seconds as i64))
