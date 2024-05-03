@@ -79,7 +79,7 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
 
                 let arrival: chrono::NaiveDateTime =
                     chrono::NaiveDateTime::parse_from_str(ankunft, "%Y-%m-%d %H:%M:%S")
-                    .context("parsing arrival time")?;
+                        .context("parsing arrival time")?;
                 let delayed = arrival
                     .checked_add_signed(chrono::TimeDelta::seconds(seconds as i64))
                     .context("calculating new arrival time")?;
@@ -113,18 +113,17 @@ fn modify_file(
     let mut tree = read_file(path)?;
 
     if let Some(multiplier) = modify.multiplier {
-        modify_multiplier(&mut tree, multiplier)
-            .context("applying multiplier")?;
+        modify_multiplier(&mut tree, multiplier).context("applying multiplier")?;
     }
 
     if let Some(p) = modify.delay_probability {
         let val: f32 = rng.gen();
 
         if val < p {
-            let seconds = modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+            let seconds =
+                modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
 
-            delay(&mut tree, seconds as u32)
-                .context("delaying entry")?;
+            delay(&mut tree, seconds as u32).context("delaying entry")?;
         }
     }
 
@@ -162,10 +161,7 @@ fn modify(cmd: Modify) {
         }
 
         let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|err| {
-            eprintln!(
-                "Failed file modification, path: {}",
-                path.to_string_lossy()
-            );
+            eprintln!("Failed file modification, path: {}", path.to_string_lossy());
 
             eprintln!("| reason: {}", err.root_cause());
 
