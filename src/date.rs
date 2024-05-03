@@ -21,7 +21,7 @@ impl Display for Datetime {
 }
 
 impl FromStr for Datetime {
-    type Err = Box<dyn Error>;
+    type Err = Box<dyn Error + Send + Sync>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let [date, time]: [&str; 2] = s
