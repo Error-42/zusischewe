@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::{anyhow, bail, Context};
 use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use rand::Rng;
@@ -55,31 +56,37 @@ struct Reset {
     directory: PathBuf,
 }
 
-fn modify_multiplier(tree: &mut Element, multiplier: f32) -> Result<(), Box<dyn Error>> {
+fn modify_multiplier(tree: &mut Element, multiplier: f32) -> anyhow::Result<()> {
     let apbeschl = tree
         .get_mut_child("Zug")
-        .ok_or("no tag 'Zug'")?
+        .ok_or(anyhow!("no tag 'Zug'"))?
         .attributes
         .get_mut("APBeschl")
-        .ok_or("no attribute 'APBeschl'")?;
+        .ok_or(anyhow!("no attribute 'APBeschl'"))?;
 
-    let decel: f32 = apbeschl.parse()?;
+    let decel: f32 = apbeschl
+        .parse()
+        .with_context(|| "unable to parse `APBeschl`")?;
 
     *apbeschl = (multiplier * decel).to_string();
 
     Ok(())
 }
 
-fn delay(tree: &mut Element, seconds: u32) -> Result<(), Box<dyn Error>> {
-    for child in &mut tree.get_mut_child("Zug").ok_or("no tag `Zug`")?.children {
+fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
+    for child in &mut tree.get_mut_child("Zug").context("no tag `Zug`")?.children {
         if let XMLNode::Element(e) = child {
             if e.name == "FahrplanEintrag" {
                 let ankunft = e
                     .attributes
                     .get_mut("Ank")
-                    .ok_or("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
+                    .context("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
 
-                let mut datetime: Datetime = ankunft.parse()?;
+                let mut datetime: Datetime = ankunft
+                    .parse()
+                    .map_err(
+                        |err: Box<dyn Error + Send + Sync>| anyhow!(err)
+                        .context("parsing arrival time"))?;
                 datetime.inc_seconds(seconds);
                 *ankunft = datetime.to_string();
 
@@ -88,16 +95,16 @@ fn delay(tree: &mut Element, seconds: u32) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    Err("no `FahrplanEintrag` entry inside `Zug`".into())
+    bail!("no `FahrplanEintrag` entry inside `Zug`")
 }
 
-fn read_file(path: &Path) -> Result<Element, Box<dyn Error>> {
+fn read_file(path: &Path) -> anyhow::Result<Element> {
     let contents = fs::read_to_string(path)?;
 
     Ok(Element::parse(contents.as_bytes())?)
 }
 
-fn write_file(path: &Path, tree: Element) -> Result<(), Box<dyn Error>> {
+fn write_file(path: &Path, tree: Element) -> anyhow::Result<()> {
     tree.write(File::create(path)?)?;
 
     Ok(())
@@ -107,11 +114,12 @@ fn modify_file(
     path: &Path,
     modify: &Modify,
     rng: &mut rand::rngs::ThreadRng,
-) -> Result<(), Box<dyn Error>> {
+) -> anyhow::Result<()> {
     let mut tree = read_file(path)?;
 
     if let Some(multiplier) = modify.multiplier {
-        modify_multiplier(&mut tree, multiplier)?;
+        modify_multiplier(&mut tree, multiplier)
+            .context("applying multiplier")?;
     }
 
     if let Some(p) = modify.delay_probability {
@@ -120,7 +128,8 @@ fn modify_file(
         if val < p {
             let seconds = modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
 
-            delay(&mut tree, seconds as u32)?;
+            delay(&mut tree, seconds as u32)
+                .context("delaying entry")?;
         }
     }
 
@@ -157,12 +166,17 @@ fn modify(cmd: Modify) {
             continue;
         }
 
-        let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|e| {
+        let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|err| {
             eprintln!(
-                "failed file modification, path: {}, reason: {:?}",
-                path.to_string_lossy(),
-                e
-            )
+                "Failed file modification, path: {}",
+                path.to_string_lossy()
+            );
+
+            eprintln!("| reason: {}", err.root_cause());
+
+            for context in err.chain().rev().skip(1) {
+                eprintln!("| when: {context}");
+            }
         });
     }
 }
