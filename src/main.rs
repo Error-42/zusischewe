@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     ffi::OsStr,
     fs::{self, File},
     path::{Path, PathBuf},
@@ -10,10 +9,6 @@ use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use rand::Rng;
 use xmltree::{Element, XMLNode};
-
-use crate::date::Datetime;
-
-mod date;
 
 /// ZuSi schlechtes Wetter
 ///
@@ -82,13 +77,13 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
                     .get_mut("Ank")
                     .context("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
 
-                let mut datetime: Datetime = ankunft
-                    .parse()
-                    .map_err(
-                        |err: Box<dyn Error + Send + Sync>| anyhow!(err)
-                        .context("parsing arrival time"))?;
-                datetime.inc_seconds(seconds);
-                *ankunft = datetime.to_string();
+                let arrival: chrono::NaiveDateTime =
+                    chrono::NaiveDateTime::parse_from_str(&ankunft, "%Y-%m-%d %H:%M:%S")
+                    .context("parsing arrival time")?;
+                let delayed = arrival
+                    .checked_add_signed(chrono::TimeDelta::seconds(seconds as i64))
+                    .context("calculating new arrival time")?;
+                *ankunft = delayed.format("%Y-%m-%d %H:%M:%S").to_string();
 
                 return Ok(());
             }
