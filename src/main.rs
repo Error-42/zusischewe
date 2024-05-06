@@ -34,11 +34,11 @@ struct Modify {
     directory: PathBuf,
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
-    #[arg(alias = "dp", long)]
+    #[arg(visible_alias = "dp", long)]
     delay_probability: Option<f32>,
-    #[arg(alias = "da", long, default_value = "360")]
+    #[arg(visible_alias = "da", long, default_value = "360")]
     delay_amplitude: f32,
-    #[arg(alias = "dl", long, default_value = "3")]
+    #[arg(visible_alias = "dl", long, default_value = "3")]
     delay_lambda: f32,
     /// do not create `_zsw` folder used for resetting
     #[arg(short = 'n', long, action)]
@@ -79,7 +79,7 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
 
                 let arrival: chrono::NaiveDateTime =
                     chrono::NaiveDateTime::parse_from_str(ankunft, "%Y-%m-%d %H:%M:%S")
-                        .context("parsing arrival time")?;
+                        .context(format!("parsing arrival time `{ankunft}`"))?;
                 let delayed = arrival
                     .checked_add_signed(chrono::TimeDelta::seconds(seconds as i64))
                     .context("calculating new arrival time")?;
@@ -141,7 +141,6 @@ fn copy_name(dir: &Path) -> Option<PathBuf> {
 fn modify(cmd: Modify) {
     if !cmd.no_copy {
         let to = copy_name(&cmd.directory).unwrap();
-        dbg!(&to);
 
         dir::create(to.clone(), false).unwrap();
         dir::copy(
