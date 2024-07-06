@@ -151,7 +151,7 @@ fn modify_file(
         let seconds = (minutes * 60.0) as u32;
 
         if seconds != 0 {
-            delay(&mut tree, (minutes * 60.0) as u32).context("delaying entry")?;
+            delay(&mut tree, seconds).context("delaying entry")?;
         }
     }
 
