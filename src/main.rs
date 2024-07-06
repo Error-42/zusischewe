@@ -69,6 +69,14 @@ struct Reset {
     directory: PathBuf,
 }
 
+fn is_wagon_locomotive(data_tag: &Element) -> anyhow::Result<bool> {
+    let wagon_location = data_tag.attributes
+        .get("Dateiname")
+        .context("tag 'Datei' inside tag 'FahrzeugInfo' has no attribute 'Dateiname'")?;
+
+    Ok(wagon_location.contains("lok"))
+}
+
 fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
     for child in &consist.children {
         let XMLNode::Element(element) = child else {
@@ -76,15 +84,17 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
         };
 
         match element.name.as_str() {
+            "Datei" => {
+                if is_wagon_locomotive(element)? {
+                    return Ok(true);
+                }
+            },
             "FahrzeugInfo" => {
-                let wagon_location = element
+                let data = element
                     .get_child("Datei")
-                    .context("tag 'FahrzeugInfo' has no tag 'Datei'")?
-                    .attributes
-                    .get("Dateiname")
-                    .context("tag 'Datei' inside tag 'FahrzeugInfo' has no attribute 'Dateiname'")?;
+                    .context("tag 'FahrzeugInfo' has no tag 'Datei'")?;
 
-                if wagon_location.contains("lok") {
+                if is_wagon_locomotive(data)? {
                     return Ok(true);
                 }
             }
@@ -93,7 +103,7 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
                     return Ok(true);
                 }
             }
-            name => bail!("Unknown tag '{name}' inside FahrzeugVarianten"),
+            name => bail!("Unknown tag '{name}' inside tag 'FahrzeugVarianten' or 'FahrzeugInfo'"),
         }
     }
     
