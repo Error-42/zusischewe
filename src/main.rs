@@ -86,7 +86,7 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
                 let ankunft = e
                     .attributes
                     .get_mut("Ank")
-                    .context("no starting time: no attribute `Ank` on firt `FahrplanEintrag`")?;
+                    .context("no starting time: no attribute `Ank` on first `FahrplanEintrag`")?;
 
                 let arrival: chrono::NaiveDateTime =
                     chrono::NaiveDateTime::parse_from_str(ankunft, "%Y-%m-%d %H:%M:%S")
