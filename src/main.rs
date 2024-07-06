@@ -99,7 +99,7 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
                 }
             }
             "FahrzeugVarianten" => {
-                if consist_has_locomotive(&element)? {
+                if consist_has_locomotive(element)? {
                     return Ok(true);
                 }
             }
