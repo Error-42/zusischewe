@@ -8,6 +8,7 @@ use anyhow::{anyhow, bail, Context};
 use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use rand::Rng;
+use rand_distr::Distribution;
 use xmltree::{Element, XMLNode};
 
 /// ZuSi schlechtes Wetter
@@ -32,14 +33,24 @@ enum Command {
 #[derive(Debug, Parser)]
 struct Modify {
     directory: PathBuf,
+
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
+
     #[arg(visible_alias = "dp", long)]
     delay_probability: Option<f32>,
     #[arg(visible_alias = "da", long, default_value = "360")]
     delay_amplitude: f32,
     #[arg(visible_alias = "dl", long, default_value = "3")]
     delay_lambda: f32,
+
+    #[arg(visible_alias = "bm", long)]
+    bell_mean: Option<f32>,
+    #[arg(visible_alias = "bd", long, default_value = "5")]
+    bell_deviation: f32,
+    #[arg(short, long, action)]
+    deny_early: bool,
+    
     /// do not create `_zsw` folder used for resetting
     #[arg(short = 'n', long, action)]
     no_copy: bool,
@@ -116,14 +127,31 @@ fn modify_file(
         modify_multiplier(&mut tree, multiplier).context("applying multiplier")?;
     }
 
-    if let Some(p) = modify.delay_probability {
-        let val: f32 = rng.gen();
+    {
+        let mut minutes: f32 = 0.0;
 
-        if val < p {
-            let seconds =
-                modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+        if let Some(p) = modify.delay_probability {
+            let val: f32 = rng.gen();
 
-            delay(&mut tree, seconds as u32).context("delaying entry")?;
+            if val < p {
+                minutes += modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+            }
+        }
+
+        if let Some(bell_mean) = modify.bell_mean {
+            minutes += rand_distr::Normal::new(bell_mean, modify.bell_deviation)
+                .context("unable to generate normal distribution for random number sampling with given parameters")?
+                .sample(rng);
+        }
+
+        if modify.deny_early {
+            minutes = minutes.max(0.0);
+        }
+
+        let seconds = (minutes * 60.0) as u32;
+
+        if seconds != 0 {
+            delay(&mut tree, (minutes * 60.0) as u32).context("delaying entry")?;
         }
     }
 
