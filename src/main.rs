@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use clap::{Parser, Subcommand};
 use fs_extra::dir;
 use rand::Rng;
@@ -37,6 +37,13 @@ struct Modify {
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
 
+    #[arg(short = 'f', long, default_value = "0.4")]
+    friction: f32,
+    #[arg(short = 'l', long, default_value = "0.4")]
+    loc_needed: f32,
+    #[arg(short = 't', long, default_value = "0.25")]
+    mu_needed: f32,
+
     #[arg(visible_alias = "dp", long)]
     delay_probability: Option<f32>,
     #[arg(visible_alias = "da", long, default_value = "360")]
@@ -62,19 +69,64 @@ struct Reset {
     directory: PathBuf,
 }
 
-fn modify_multiplier(tree: &mut Element, multiplier: f32) -> anyhow::Result<()> {
-    let apbeschl = tree
+fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
+    for child in &consist.children {
+        let XMLNode::Element(element) = child else {
+            continue;
+        };
+
+        match element.name.as_str() {
+            "FahrzeugInfo" => {
+                let wagon_location = element
+                    .get_child("Datei")
+                    .context("tag 'FahrzeugInfo' has no tag 'Datei'")?
+                    .attributes
+                    .get("Dateiname")
+                    .context("tag 'Datei' inside tag 'FahrzeugInfo' has no attribute 'Dateiname'")?;
+
+                if wagon_location.contains("lok") {
+                    return Ok(true);
+                }
+            }
+            "FahrzeugVarianten" => {
+                if consist_has_locomotive(&element)? {
+                    return Ok(true);
+                }
+            }
+            name => bail!("Unknown tag '{name}' inside FahrzeugVarianten"),
+        }
+    }
+    
+    Ok(false)
+}
+
+fn modify_multiplier(tree: &mut Element, loc_multiplier: f32, mu_multiplier: f32) -> anyhow::Result<()> {
+    let train = tree
         .get_mut_child("Zug")
-        .ok_or(anyhow!("no tag 'Zug'"))?
+        .context("no tag 'Zug'")?;
+
+    let consist = train
+        .get_child("FahrzeugVarianten")
+        .context("no tag 'FahrzeugVarianten'")?;
+
+    let has_locomotive = consist_has_locomotive(consist)
+        .context("trying to determine whether consist has a locomotive")?;
+
+    let apbeschl = train
         .attributes
         .get_mut("APBeschl")
-        .ok_or(anyhow!("no attribute 'APBeschl'"))?;
+        .context("no attribute 'APBeschl'")?;
 
-    let decel: f32 = apbeschl
+    let acceleration: f32 = apbeschl
         .parse()
         .with_context(|| "unable to parse `APBeschl`")?;
 
-    *apbeschl = (multiplier * decel).to_string();
+    let multiplier = match has_locomotive {
+        true => loc_multiplier,
+        false => mu_multiplier,
+    };
+
+    *apbeschl = (multiplier * acceleration).to_string();
 
     Ok(())
 }
@@ -123,10 +175,24 @@ fn modify_file(
 ) -> anyhow::Result<()> {
     let mut tree = read_file(path)?;
 
-    if let Some(multiplier) = modify.multiplier {
-        modify_multiplier(&mut tree, multiplier).context("applying multiplier")?;
+    // multiplier
+    {
+        let mut loc_multiplier = (modify.friction / modify.loc_needed).min(1.0);
+        let mut mu_multiplier = (modify.friction / modify.mu_needed).min(1.0);
+    
+        if let Some(multiplier) = modify.multiplier {
+            loc_multiplier *= multiplier;
+            mu_multiplier *= multiplier;
+        }
+
+        // This is only here to not try to perform an unneeded operation if no changes are needed. If friction >= *_needed, then *_multiplier = 1.0, so this check is enough.  
+        if loc_multiplier != 1.0 || mu_multiplier != 1.0 { 
+            modify_multiplier(&mut tree, loc_multiplier, mu_multiplier)
+                .context("applying multiplier")?;
+        }
     }
 
+    // delays
     {
         let mut minutes: f32 = 0.0;
 
