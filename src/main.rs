@@ -13,7 +13,7 @@ use xmltree::{Element, XMLNode};
 
 /// ZuSi schlechtes Wetter
 ///
-/// Modify the acceleration of all trains.
+/// Cause general chaos.
 #[derive(Debug, Parser)]
 #[clap(version)]
 struct Cli {
@@ -32,38 +32,64 @@ enum Command {
 /// Modify the acceleration of all trains.
 #[derive(Debug, Parser)]
 struct Modify {
+    /// Path of the folder containing the timetable files. This folder should contain '.trn' and '.timetable.xml' files.
     directory: PathBuf,
 
+    /// Multiply the acceleration/deceleration of all trains by this factor.
+    /// 
+    /// This affects the `APBeschl` property of trains.
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
 
+    /// Modify train acceleration/deceleration assuming this is the coeffient of friction.
+    /// 
+    /// This affects the `APBeschl` property of trains.
+    /// 
+    /// The new `APBeschl` of the train is A*min(μ/M, 1) where Α is the old `APBeschl` value, μ is the new coefficient of friction, M is the coefficient of friction needed for the train to achieve full acceleration (see arguments loc_needed and mu_needed).
     #[arg(short = 'f', long, default_value = "0.4")]
     friction: f32,
+    /// Coefficient of friction needed for locomotives to achieve full acceleration/deceleration.
+    /// 
+    /// See the help of the friction argument for details.
     #[arg(short = 'l', long, default_value = "0.4")]
     loc_needed: f32,
+    /// Coefficient of friction needed for multiple units to achieve full acceleration/deceleration.
+    /// 
+    /// See the help of the friction argument for details.
     #[arg(short = 't', long, default_value = "0.25")]
     mu_needed: f32,
 
+    /// Delay type A: probability of delay. Passing this argument applies delay type A.
+    /// 
+    /// Delay type A delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
     #[arg(visible_alias = "dp", long)]
     delay_probability: Option<f32>,
+    /// Delay type A: amplitude of delay.
     #[arg(visible_alias = "da", long, default_value = "360")]
     delay_amplitude: f32,
+    /// Delay type A: λ parameter of delay.
     #[arg(visible_alias = "dl", long, default_value = "3")]
     delay_lambda: f32,
 
+    /// Delay type B: mean delay in minutes. Passing this argument applies delay type B.
+    /// 
+    /// Delay type B delays the entry of trains according to a normal distribution.
     #[arg(visible_alias = "bm", long)]
     bell_mean: Option<f32>,
+    /// Delay type B: stardard deviation of delay in minutes.
     #[arg(visible_alias = "bd", long, default_value = "5")]
     bell_deviation: f32,
+
+    /// Do not let the train enter early.
     #[arg(short, long, action)]
     deny_early: bool,
     
-    /// do not create `_zsw` folder used for resetting
+    /// Do not create `_zsw` folder used for resetting.
     #[arg(short = 'n', long, action)]
     no_copy: bool,
 }
 
-/// Reset the acceleration of all trains.
+/// Reset using the `_zsw` folder. 
 #[derive(Debug, Parser)]
 struct Reset {
     directory: PathBuf,
