@@ -84,6 +84,11 @@ struct Modify {
     #[arg(short, long, action)]
     deny_early: bool,
 
+    #[arg(visible_alias = "dfac", long)]
+    departures_delay_by_factor: f32,
+    #[arg(visible_alias = "dmd", long, default_value = "6")]
+    departures_max_delay: f32,
+
     /// Do not create `_zsw` folder used for resetting.
     #[arg(short = 'n', long, action)]
     no_copy: bool,
@@ -170,7 +175,7 @@ fn modify_multiplier(
     Ok(())
 }
 
-fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
+fn delay_entry(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
     for child in &mut tree.get_mut_child("Zug").context("no tag `Zug`")?.children {
         if let XMLNode::Element(e) = child {
             if e.name == "FahrplanEintrag" {
@@ -193,6 +198,63 @@ fn delay(tree: &mut Element, seconds: u32) -> anyhow::Result<()> {
     }
 
     bail!("no `FahrplanEintrag` entry inside `Zug`")
+}
+
+fn delay_departures(
+    tree: &mut Element,
+    factor: f32,
+    max_wait_time: chrono::TimeDelta,
+) -> anyhow::Result<()> {
+    for child in &mut tree.get_mut_child("Zug").context("no tag `Zug`")?.children {
+        if let XMLNode::Element(e) = child {
+            if e.name == "FahrplanEintrag" {
+                // A demo implementation of modifying factor based on station.
+                //
+                // ```
+                // let betriebstelle = e.attributes.get("Betrst");
+                // let factor = match betriebstelle {
+                //     Some(str) => match str.as_str() {
+                //         "Köln Hbf" => 6.0,
+                //         "Köln Messe/Deutz Hp" => 4.5,
+                //         _ => factor,
+                //     }
+                //     _ => factor,
+                // };
+                // ```
+
+                let Some(ankunft) = e.attributes.get("Ank") else {
+                    continue;
+                };
+                let ankunft = ankunft.clone();
+
+                let Some(abfahrt) = e.attributes.get_mut("Abf") else {
+                    continue;
+                };
+
+                let arrival: chrono::NaiveDateTime =
+                    chrono::NaiveDateTime::parse_from_str(&ankunft, "%Y-%m-%d %H:%M:%S")
+                        .context(format!("parsing arrival time `{ankunft}`"))?;
+
+                let departure: chrono::NaiveDateTime =
+                    chrono::NaiveDateTime::parse_from_str(abfahrt, "%Y-%m-%d %H:%M:%S")
+                        .context(format!("parsing departure time `{abfahrt}`"))?;
+
+                let original_wait_time = departure - arrival;
+                let delayed_wait_time = chrono::TimeDelta::seconds(
+                    (original_wait_time.num_seconds() as f32 * factor) as i64,
+                )
+                .min(max_wait_time);
+
+                let delayed_departure = departure
+                    .checked_add_signed(delayed_wait_time)
+                    .context("calculating new arrival time")?;
+
+                *abfahrt = delayed_departure.format("%Y-%m-%d %H:%M:%S").to_string();
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn read_file(path: &Path) -> anyhow::Result<Element> {
@@ -231,7 +293,7 @@ fn modify_file(
         }
     }
 
-    // delays
+    // delay entry
     {
         let mut minutes: f32 = 0.0;
 
@@ -257,9 +319,17 @@ fn modify_file(
         let seconds = (minutes * 60.0) as u32;
 
         if seconds != 0 {
-            delay(&mut tree, seconds).context("delaying entry")?;
+            delay_entry(&mut tree, seconds).context("delaying entry")?;
         }
     }
+
+    // delay_departure
+    delay_departures(
+        &mut tree,
+        modify.departures_delay_by_factor,
+        chrono::TimeDelta::seconds((modify.departures_max_delay * 60.0) as i64),
+    )
+    .context("delaying departures")?;
 
     write_file(path, tree)?;
 
