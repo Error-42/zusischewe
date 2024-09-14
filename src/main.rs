@@ -36,31 +36,31 @@ struct Modify {
     directory: PathBuf,
 
     /// Multiply the acceleration/deceleration of all trains by this factor.
-    /// 
+    ///
     /// This affects the `APBeschl` property of trains.
     #[arg(short = 'm', long)]
     multiplier: Option<f32>,
 
     /// Modify train acceleration/deceleration assuming this is the coeffient of friction.
-    /// 
+    ///
     /// This affects the `APBeschl` property of trains.
-    /// 
+    ///
     /// The new `APBeschl` of the train is A*min(μ/M, 1) where Α is the old `APBeschl` value, μ is the new coefficient of friction, M is the coefficient of friction needed for the train to achieve full acceleration (see arguments loc_needed and mu_needed).
     #[arg(short = 'f', long, default_value = "0.4")]
     friction: f32,
     /// Coefficient of friction needed for locomotives to achieve full acceleration/deceleration.
-    /// 
+    ///
     /// See the help of the friction argument for details.
     #[arg(short = 'l', long, default_value = "0.4")]
     loc_needed: f32,
     /// Coefficient of friction needed for multiple units to achieve full acceleration/deceleration.
-    /// 
+    ///
     /// See the help of the friction argument for details.
     #[arg(short = 't', long, default_value = "0.25")]
     mu_needed: f32,
 
     /// Delay type A: probability of delay. Passing this argument applies delay type A.
-    /// 
+    ///
     /// Delay type A delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
     #[arg(visible_alias = "dp", long)]
     delay_probability: Option<f32>,
@@ -72,7 +72,7 @@ struct Modify {
     delay_lambda: f32,
 
     /// Delay type B: mean delay in minutes. Passing this argument applies delay type B.
-    /// 
+    ///
     /// Delay type B delays the entry of trains according to a normal distribution.
     #[arg(visible_alias = "bm", long)]
     bell_mean: Option<f32>,
@@ -83,20 +83,21 @@ struct Modify {
     /// Do not let the train enter early.
     #[arg(short, long, action)]
     deny_early: bool,
-    
+
     /// Do not create `_zsw` folder used for resetting.
     #[arg(short = 'n', long, action)]
     no_copy: bool,
 }
 
-/// Reset using the `_zsw` folder. 
+/// Reset using the `_zsw` folder.
 #[derive(Debug, Parser)]
 struct Reset {
     directory: PathBuf,
 }
 
 fn is_wagon_locomotive(data_tag: &Element) -> anyhow::Result<bool> {
-    let wagon_location = data_tag.attributes
+    let wagon_location = data_tag
+        .attributes
         .get("Dateiname")
         .context("tag 'Datei' inside tag 'FahrzeugInfo' has no attribute 'Dateiname'")?;
 
@@ -114,7 +115,7 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
                 if is_wagon_locomotive(element)? {
                     return Ok(true);
                 }
-            },
+            }
             "FahrzeugInfo" => {
                 let data = element
                     .get_child("Datei")
@@ -132,14 +133,16 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
             name => bail!("Unknown tag '{name}' inside tag 'FahrzeugVarianten' or 'FahrzeugInfo'"),
         }
     }
-    
+
     Ok(false)
 }
 
-fn modify_multiplier(tree: &mut Element, loc_multiplier: f32, mu_multiplier: f32) -> anyhow::Result<()> {
-    let train = tree
-        .get_mut_child("Zug")
-        .context("no tag 'Zug'")?;
+fn modify_multiplier(
+    tree: &mut Element,
+    loc_multiplier: f32,
+    mu_multiplier: f32,
+) -> anyhow::Result<()> {
+    let train = tree.get_mut_child("Zug").context("no tag 'Zug'")?;
 
     let consist = train
         .get_child("FahrzeugVarianten")
@@ -215,14 +218,14 @@ fn modify_file(
     {
         let mut loc_multiplier = (modify.friction / modify.loc_needed).min(1.0);
         let mut mu_multiplier = (modify.friction / modify.mu_needed).min(1.0);
-    
+
         if let Some(multiplier) = modify.multiplier {
             loc_multiplier *= multiplier;
             mu_multiplier *= multiplier;
         }
 
-        // This is only here to not try to perform an unneeded operation if no changes are needed. If friction >= *_needed, then *_multiplier = 1.0, so this check is enough.  
-        if loc_multiplier != 1.0 || mu_multiplier != 1.0 { 
+        // This is only here to not try to perform an unneeded operation if no changes are needed. If friction >= *_needed, then *_multiplier = 1.0, so this check is enough.
+        if loc_multiplier != 1.0 || mu_multiplier != 1.0 {
             modify_multiplier(&mut tree, loc_multiplier, mu_multiplier)
                 .context("applying multiplier")?;
         }
@@ -236,7 +239,8 @@ fn modify_file(
             let val: f32 = rng.gen();
 
             if val < p {
-                minutes += modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+                minutes +=
+                    modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
             }
         }
 
