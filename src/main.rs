@@ -343,8 +343,10 @@ fn copy_name(dir: &Path) -> Option<PathBuf> {
 }
 
 fn modify(cmd: Modify) {
-    if !cmd.no_copy {
-        let to = copy_name(&cmd.directory).unwrap();
+    let to = copy_name(&cmd.directory);
+
+    if !(cmd.no_copy || to.as_ref().unwrap().exists()) {
+        let to = to.unwrap();
 
         dir::create(to.clone(), false).unwrap();
         dir::copy(
@@ -378,6 +380,11 @@ fn modify(cmd: Modify) {
 
 fn reset(cmd: Reset) {
     let zsw_dir = copy_name(&cmd.directory).unwrap();
+
+    if !zsw_dir.exists() {
+        eprintln!("`_zsw` folder does not exist");
+        return;
+    }
 
     dir::create(cmd.directory.clone(), true).unwrap();
     dir::move_dir(
