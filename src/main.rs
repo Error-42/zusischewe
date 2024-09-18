@@ -84,8 +84,8 @@ struct Modify {
     #[arg(short, long, action)]
     deny_early: bool,
 
-    #[arg(visible_alias = "dfac", long)]
-    departures_delay_by_factor: f32,
+    #[arg(visible_alias = "dfac", long, default_value = "1")]
+    departures_delay_factor: f32,
     #[arg(visible_alias = "dmd", long, default_value = "6")]
     departures_max_delay: f32,
 
@@ -324,12 +324,14 @@ fn modify_file(
     }
 
     // delay_departure
-    delay_departures(
-        &mut tree,
-        modify.departures_delay_by_factor,
-        chrono::TimeDelta::seconds((modify.departures_max_delay * 60.0) as i64),
-    )
-    .context("delaying departures")?;
+    if modify.departures_delay_factor != 1.0 {
+        delay_departures(
+            &mut tree,
+            modify.departures_delay_factor,
+            chrono::TimeDelta::seconds((modify.departures_max_delay * 60.0) as i64),
+        )
+        .context("delaying departures")?;
+    }
 
     write_file(path, tree)?;
 
