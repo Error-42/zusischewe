@@ -85,8 +85,6 @@ struct Modify {
     deny_early: bool,
 
     /// Delay trains as if passengers took a constant factor times longer to board.
-    /// 
-    /// Currently also applied to freight trains.
     #[arg(visible_alias = "dfac", long, default_value = "1")]
     departures_delay_factor: f32,
     /// Maximum delay of non-entry departures in minutes.
@@ -144,6 +142,17 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
     }
 
     Ok(false)
+}
+
+/// `train` is XML tag `Zug`.
+fn is_passenger(train: &Element) -> bool {
+    let zugtyp = train.attributes.get("Zugtyp");
+
+    let Some(train_type) = zugtyp else {
+        return false;
+    };
+
+    *train_type == "1"
 }
 
 fn modify_multiplier(
@@ -209,7 +218,13 @@ fn delay_departures(
     factor: f32,
     max_wait_time: chrono::TimeDelta,
 ) -> anyhow::Result<()> {
-    for child in &mut tree.get_mut_child("Zug").context("no tag `Zug`")?.children {
+    let zug = tree.get_mut_child("Zug").context("no tag `Zug`")?;
+
+    if !is_passenger(zug) {
+        return Ok(());
+    }
+
+    for child in &mut zug.children {
         if let XMLNode::Element(e) = child {
             if e.name == "FahrplanEintrag" {
                 // A demo implementation of modifying factor based on station.
