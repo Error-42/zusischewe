@@ -84,8 +84,12 @@ struct Modify {
     #[arg(short, long, action)]
     deny_early: bool,
 
+    /// Delay trains as if passengers took a constant factor times longer to board.
+    /// 
+    /// Currently also applied to freight trains.
     #[arg(visible_alias = "dfac", long, default_value = "1")]
     departures_delay_factor: f32,
+    /// Maximum delay of non-entry departures in minutes.
     #[arg(visible_alias = "dmd", long, default_value = "6")]
     departures_max_delay: f32,
 
