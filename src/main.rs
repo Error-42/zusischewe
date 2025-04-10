@@ -94,6 +94,9 @@ struct Modify {
     /// Do not create `_zsw` folder used for resetting.
     #[arg(short = 'n', long, action)]
     no_copy: bool,
+
+    #[arg(short = 'D', long, action)]
+    duplicate: bool,
 }
 
 /// Reset using the `_zsw` folder.
@@ -357,6 +360,40 @@ fn modify_file(
     Ok(())
 }
 
+fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
+    let mut tree = read_file(path)?;
+
+    let fahrplan: &mut Element = tree.get_mut_child("Fahrplan").context("no tag `Fahrplan`")?;
+
+    let mut new_fahrplan: Element = fahrplan.clone();
+
+    for child in &fahrplan.children {
+        let XMLNode::Element(e) = child else {
+            continue;
+        };
+
+        if e.name == "Zug" {
+            let mut new_element = e.clone();
+
+            let datei = new_element.get_mut_child("Datei").context("TODO")?;
+            
+            // dbg!(&datei);
+
+            *datei.attributes.get_mut("Dateiname").unwrap() = datei
+                .attributes["Dateiname"]
+                .replace(".trn", "B.trn");
+
+            // dbg!(&datei);
+
+            new_fahrplan.children.push(XMLNode::Element(new_element));
+        }
+    }
+
+    *fahrplan = new_fahrplan;
+
+    write_file(path, tree)
+}
+
 fn copy_name(dir: &Path) -> Option<PathBuf> {
     let mut file_name = dir.file_name()?.to_os_string();
     file_name.push("_zsw");
@@ -396,6 +433,39 @@ fn modify(cmd: Modify) {
                 eprintln!("| when: {context}");
             }
         });
+    }
+
+    if cmd.duplicate {
+        // TODO: implement properly.
+        // 
+        // We'll need to duplicate the fpn file, so we can reset it. Also, maybe do it better, so no warning are produced and the two trains can be delayed a different amount? 
+        let mut file_end = cmd.directory.file_name().unwrap().to_os_string();
+        file_end.push(".fpn");
+        let file = cmd.directory.with_file_name(file_end);
+        duplicate_trains(&file).unwrap();
+
+        for file in fs::read_dir(&cmd.directory).unwrap() {
+            let path = file.unwrap().path();
+
+            if path.extension() != Some(OsStr::new("trn")) {
+                continue;
+            }
+
+            let copied_file = path
+                .to_string_lossy()
+                .replace(".trn", "B.trn");
+
+            fs::copy(path, &copied_file).unwrap();
+
+            let mut tree = read_file(&PathBuf::from(&copied_file)).unwrap();
+
+            let zug = tree.get_mut_child("Zug").unwrap();
+            let mut nummer = zug.attributes["Nummer"].clone();
+            nummer.push('B');
+            *zug.attributes.get_mut("Nummer").unwrap() = nummer;
+
+            write_file(&PathBuf::from(&copied_file), tree).unwrap();
+        }
     }
 }
 
