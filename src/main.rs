@@ -395,25 +395,44 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
     write_file(path, tree)
 }
 
-fn copy_name(dir: &Path) -> Option<PathBuf> {
+fn dir_copy_name(dir: &Path) -> Option<PathBuf> {
     let mut file_name = dir.file_name()?.to_os_string();
     file_name.push("_zsw");
     Some(dir.with_file_name(file_name))
 }
 
+fn fahrplan_copy_name(fahrplan_file: &Path) -> Option<PathBuf> {
+    let mut file_name = fahrplan_file.file_stem()?.to_os_string();
+    file_name.push("_zsw.fpn");
+    Some(fahrplan_file.with_file_name(file_name))
+}
+
 fn modify(cmd: Modify) {
-    let to = copy_name(&cmd.directory);
+    let dir_copy = dir_copy_name(&cmd.directory);
+    let fahrplan = cmd.directory.with_extension("fpn");
+    let fahrplan_copy = fahrplan_copy_name(&fahrplan);
 
-    if !(cmd.no_copy || to.as_ref().unwrap().exists()) {
-        let to = to.unwrap();
+    if !(cmd.no_copy || dir_copy.as_ref().unwrap().exists()) {
+        let dir_copy_exists = dir_copy.as_ref().unwrap().exists();
+        let fahrplan_copy_exists = fahrplan_copy.as_ref().unwrap().exists();
 
-        dir::create(to.clone(), false).unwrap();
-        dir::copy(
-            cmd.directory.clone(),
-            to,
-            &dir::CopyOptions::new().content_only(true),
-        )
-        .unwrap();
+        if dir_copy_exists != fahrplan_copy_exists {
+            panic!();
+        }
+
+        if !dir_copy_exists {
+            let to = dir_copy.unwrap();
+
+            dir::create(to.clone(), false).unwrap();
+            dir::copy(
+                cmd.directory.clone(),
+                to,
+                &dir::CopyOptions::new().content_only(true),
+            )
+            .unwrap();
+
+            fs::copy(fahrplan, fahrplan_copy.unwrap()).unwrap();
+        }
     }
 
     let mut rng = rand::thread_rng();
@@ -469,10 +488,17 @@ fn modify(cmd: Modify) {
 }
 
 fn reset(cmd: Reset) {
-    let zsw_dir = copy_name(&cmd.directory).unwrap();
+    let zsw_dir = dir_copy_name(&cmd.directory).unwrap();
+    let fahrplan = cmd.directory.with_extension("fpn");
+    let fahrplan_copy = fahrplan_copy_name(&fahrplan).unwrap();
 
     if !zsw_dir.exists() {
         eprintln!("`_zsw` folder does not exist");
+        return;
+    }
+
+    if !fahrplan_copy.exists() {
+        eprintln!("`_zsw.fpn` backup Fahrplan file does not exist");
         return;
     }
 
@@ -483,6 +509,8 @@ fn reset(cmd: Reset) {
         &dir::CopyOptions::new().content_only(true),
     )
     .unwrap();
+
+    fs::rename(fahrplan_copy, fahrplan).unwrap();
 }
 
 fn main() {
