@@ -363,7 +363,9 @@ fn modify_file(
 fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
     let mut tree = read_file(path)?;
 
-    let fahrplan: &mut Element = tree.get_mut_child("Fahrplan").context("no tag `Fahrplan`")?;
+    let fahrplan: &mut Element = tree
+        .get_mut_child("Fahrplan")
+        .context("no tag `Fahrplan`")?;
 
     let mut new_fahrplan: Element = fahrplan.clone();
 
@@ -376,12 +378,11 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
             let mut new_element = e.clone();
 
             let datei = new_element.get_mut_child("Datei").context("TODO")?;
-            
+
             // dbg!(&datei);
 
-            *datei.attributes.get_mut("Dateiname").unwrap() = datei
-                .attributes["Dateiname"]
-                .replace(".trn", "B.trn");
+            *datei.attributes.get_mut("Dateiname").unwrap() =
+                datei.attributes["Dateiname"].replace(".trn", "B.trn");
 
             // dbg!(&datei);
 
@@ -437,8 +438,8 @@ fn modify(cmd: Modify) {
 
     if cmd.duplicate {
         // TODO: implement properly.
-        // 
-        // We'll need to duplicate the fpn file, so we can reset it. Also, maybe do it better, so no warning are produced and the two trains can be delayed a different amount? 
+        //
+        // We'll need to duplicate the fpn file, so we can reset it. Also, maybe do it better, so no warning are produced and the two trains can be delayed a different amount?
         let mut file_end = cmd.directory.file_name().unwrap().to_os_string();
         file_end.push(".fpn");
         let file = cmd.directory.with_file_name(file_end);
@@ -451,9 +452,7 @@ fn modify(cmd: Modify) {
                 continue;
             }
 
-            let copied_file = path
-                .to_string_lossy()
-                .replace(".trn", "B.trn");
+            let copied_file = path.to_string_lossy().replace(".trn", "B.trn");
 
             fs::copy(path, &copied_file).unwrap();
 
