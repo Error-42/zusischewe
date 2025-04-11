@@ -95,6 +95,9 @@ struct Modify {
     #[arg(short = 'n', long, action)]
     no_copy: bool,
 
+    /// Double all trains.
+    /// 
+    /// The second train will have 'B' appended to its train number.
     #[arg(short = 'D', long, action)]
     duplicate: bool,
 }
@@ -377,14 +380,21 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
         if e.name == "Zug" {
             let mut new_element = e.clone();
 
-            let datei = new_element.get_mut_child("Datei").context("TODO")?;
+            let datei = new_element
+                .get_mut_child("Datei")
+                .context("no tag `Datei` inside `Zug`")?;
 
-            // dbg!(&datei);
-
-            *datei.attributes.get_mut("Dateiname").unwrap() =
-                datei.attributes["Dateiname"].replace(".trn", "B.trn");
-
-            // dbg!(&datei);
+            let dateiname = datei
+                .attributes
+                .get_mut("Dateiname")
+                .context("`Datei` inside `Zug` has no attribute `Dateiname`")?;
+            *dateiname = dateiname
+                .strip_suffix(".trn")
+                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
+                .to_owned()
+                .chars()
+                .chain("B.trn".chars())
+                .collect();
 
             new_fahrplan.children.push(XMLNode::Element(new_element));
         }
@@ -393,6 +403,30 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
     *fahrplan = new_fahrplan;
 
     write_file(path, tree)
+}
+
+fn duplicate_train(path: &Path) -> anyhow::Result<()> {
+    let new_path = {
+        let mut file_name = path
+            .file_stem()
+            .context("path to train has no file name")?
+            .to_os_string();
+        file_name.push("B.trn");
+        path.with_file_name(file_name)
+    };
+
+    let mut tree = read_file(&path).context("reading old `.trn` file")?;
+
+    let zug = tree.get_mut_child("Zug").context("no tag `Zug`")?;
+    let mut nummer = zug
+        .attributes
+        .get("Nummer")
+        .context("tag `Zug` has no attribute `Nummer`")?
+        .clone();
+    nummer.push('B');
+    *zug.attributes.get_mut("Nummer").unwrap() = nummer;
+
+    write_file(&PathBuf::from(&new_path), tree)
 }
 
 fn dir_copy_name(dir: &Path) -> Option<PathBuf> {
@@ -405,6 +439,14 @@ fn fahrplan_copy_name(fahrplan_file: &Path) -> Option<PathBuf> {
     let mut file_name = fahrplan_file.file_stem()?.to_os_string();
     file_name.push("_zsw.fpn");
     Some(fahrplan_file.with_file_name(file_name))
+}
+
+fn print_stack_trace(err: &anyhow::Error) {
+    eprintln!("| reason: {}", err.root_cause());
+
+    for context in err.chain().rev().skip(1) {
+        eprintln!("| when: {context}");
+    }
 }
 
 fn modify(cmd: Modify) {
@@ -431,7 +473,7 @@ fn modify(cmd: Modify) {
             )
             .unwrap();
 
-            fs::copy(fahrplan, fahrplan_copy.unwrap()).unwrap();
+            fs::copy(&fahrplan, fahrplan_copy.unwrap()).unwrap();
         }
     }
 
@@ -447,22 +489,16 @@ fn modify(cmd: Modify) {
         let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|err| {
             eprintln!("Failed file modification, path: {}", path.to_string_lossy());
 
-            eprintln!("| reason: {}", err.root_cause());
-
-            for context in err.chain().rev().skip(1) {
-                eprintln!("| when: {context}");
-            }
+            print_stack_trace(err);
         });
     }
 
     if cmd.duplicate {
-        // TODO: implement properly.
-        //
-        // We'll need to duplicate the fpn file, so we can reset it. Also, maybe do it better, so no warning are produced and the two trains can be delayed a different amount?
-        let mut file_end = cmd.directory.file_name().unwrap().to_os_string();
-        file_end.push(".fpn");
-        let file = cmd.directory.with_file_name(file_end);
-        duplicate_trains(&file).unwrap();
+        let _ = duplicate_trains(&fahrplan).inspect_err(|err| {
+            eprintln!("Failed to duplicate train entries inside `.fpn` file");
+
+            print_stack_trace(err);
+        });
 
         for file in fs::read_dir(&cmd.directory).unwrap() {
             let path = file.unwrap().path();
@@ -471,18 +507,14 @@ fn modify(cmd: Modify) {
                 continue;
             }
 
-            let copied_file = path.to_string_lossy().replace(".trn", "B.trn");
+            let _ = duplicate_train(&path).inspect_err(|err| {
+                eprintln!(
+                    "Failed to create copied train of {}",
+                    path.to_string_lossy()
+                );
 
-            fs::copy(path, &copied_file).unwrap();
-
-            let mut tree = read_file(&PathBuf::from(&copied_file)).unwrap();
-
-            let zug = tree.get_mut_child("Zug").unwrap();
-            let mut nummer = zug.attributes["Nummer"].clone();
-            nummer.push('B');
-            *zug.attributes.get_mut("Nummer").unwrap() = nummer;
-
-            write_file(&PathBuf::from(&copied_file), tree).unwrap();
+                print_stack_trace(err);
+            });
         }
     }
 }
