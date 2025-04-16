@@ -80,6 +80,15 @@ struct Modify {
     #[arg(visible_alias = "bd", long, default_value = "5")]
     bell_deviation: f32,
 
+    /// Delay type U: probability of delay. Passing this argument applies delay type U.
+    ///
+    /// Delay type U delays the entry of trains by a uniformly chosen amount between 0 and the maximum with some probability.
+    #[arg(visible_alias = "up", long)]
+    uniform_probabilty: Option<f32>,
+    /// Delay type U: maximum delay in minutes.
+    #[arg(visible_alias = "um", long)]
+    uniform_maximum: f32,
+
     /// Do not let the train enter early.
     #[arg(short, long, action)]
     deny_early: bool,
@@ -96,7 +105,7 @@ struct Modify {
     no_copy: bool,
 
     /// Double all trains.
-    /// 
+    ///
     /// The second train will have 'B' appended to its train number.
     #[arg(short = 'D', long, action)]
     duplicate: bool,
@@ -335,6 +344,12 @@ fn modify_file(
             minutes += rand_distr::Normal::new(bell_mean, modify.bell_deviation)
                 .context("unable to generate normal distribution for random number sampling with given parameters")?
                 .sample(rng);
+        }
+
+        if let Some(p) = modify.uniform_probabilty {
+            if rng.gen::<f32>() < p {
+                minutes += modify.uniform_maximum as f32 * rng.gen::<f32>();
+            }
         }
 
         if modify.deny_early {
