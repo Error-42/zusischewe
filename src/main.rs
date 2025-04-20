@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     ffi::OsStr,
     fs::{self, File},
     path::{Path, PathBuf},
@@ -109,6 +110,10 @@ struct Modify {
     /// The second train will have 'B' appended to its train number.
     #[arg(short = 'D', long, action)]
     duplicate: bool,
+
+    /// TODO
+    #[arg(visible_alias = "!Dg", long, num_args=0..)]
+    dont_duplicate_group: Vec<String>,
 }
 
 /// Reset using the `_zsw` folder.
@@ -157,6 +162,13 @@ fn consist_has_locomotive(consist: &Element) -> anyhow::Result<bool> {
     }
 
     Ok(false)
+}
+
+fn group_name(train: &Element) -> anyhow::Result<&String> {
+    train
+        .attributes
+        .get("FahrplanGruppe")
+        .context("`Zug` has no tag FahrplanGruppe")
 }
 
 /// `train` is XML tag `Zug`.
@@ -297,7 +309,7 @@ fn read_file(path: &Path) -> anyhow::Result<Element> {
     Ok(Element::parse(contents.as_bytes())?)
 }
 
-fn write_file(path: &Path, tree: Element) -> anyhow::Result<()> {
+fn write_file(path: &Path, tree: &Element) -> anyhow::Result<()> {
     tree.write(File::create(path)?)?;
 
     Ok(())
@@ -373,12 +385,12 @@ fn modify_file(
         .context("delaying departures")?;
     }
 
-    write_file(path, tree)?;
+    write_file(path, &tree)?;
 
     Ok(())
 }
 
-fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
+fn duplicate_trains(path: &Path, duplicated: &HashSet<String>) -> anyhow::Result<()> {
     let mut tree = read_file(path)?;
 
     let fahrplan: &mut Element = tree
@@ -403,6 +415,17 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
                 .attributes
                 .get_mut("Dateiname")
                 .context("`Datei` inside `Zug` has no attribute `Dateiname`")?;
+
+            let (_folder, nummer) = dateiname
+                .strip_suffix(".trn")
+                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
+                .rsplit_once(|ch| !('0'..='9').contains(&ch))
+                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a `.trn` file with path consisting of at least one non-digit character, instead it points to {dateiname}"))?;
+
+            if !duplicated.contains(nummer) {
+                continue;
+            }
+
             *dateiname = dateiname
                 .strip_suffix(".trn")
                 .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
@@ -417,10 +440,11 @@ fn duplicate_trains(path: &Path) -> anyhow::Result<()> {
 
     *fahrplan = new_fahrplan;
 
-    write_file(path, tree)
+    write_file(path, &tree)
 }
 
-fn duplicate_train(path: &Path) -> anyhow::Result<()> {
+/// Returns the name of the train if it was duplicated
+fn duplicate_train(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>> {
     let new_path = {
         let mut file_name = path
             .file_stem()
@@ -433,13 +457,26 @@ fn duplicate_train(path: &Path) -> anyhow::Result<()> {
     let mut tree = read_file(&path).context("reading old `.trn` file")?;
 
     let zug = tree.get_mut_child("Zug").context("no tag `Zug`")?;
+
+    let group = group_name(zug)?;
+    if modify
+        .dont_duplicate_group
+        .iter()
+        .any(|g| group.contains(g))
+    {
+        return Ok(None);
+    }
+
     let nummer = zug
         .attributes
         .get_mut("Nummer")
         .context("tag `Zug` has no attribute `Nummer`")?;
+    let original_nummer = nummer.clone();
     nummer.push('B');
 
-    write_file(&PathBuf::from(&new_path), tree)
+    write_file(&PathBuf::from(&new_path), &tree).context("writing new `.trn` file")?;
+
+    Ok(Some(original_nummer))
 }
 
 fn dir_copy_name(dir: &Path) -> Option<PathBuf> {
@@ -551,12 +588,6 @@ fn modify(cmd: Modify) {
     }
 
     if cmd.duplicate {
-        let _ = duplicate_trains(&fahrplan).inspect_err(|err| {
-            eprintln!("Failed to duplicate train entries inside `.fpn` file");
-
-            print_stack_trace(err);
-        });
-
         let Ok(files) = fs::read_dir(&cmd.directory) else {
             eprintln!(
                 "Unable to iterate over files in `{}`",
@@ -565,28 +596,42 @@ fn modify(cmd: Modify) {
             return;
         };
 
-        for file in files {
-            let Ok(path) = file.map(|f| f.path()) else {
-                eprintln!(
-                    "Error with entry trying to iterate over elements of folder `{}`",
-                    cmd.directory.to_string_lossy()
-                );
-                return;
-            };
+        let duplicated: HashSet<_> = files
+            .filter_map(|file| {
+                let Ok(path) = file.map(|f| f.path()) else {
+                    eprintln!(
+                        "Error with entry trying to iterate over elements of folder `{}`",
+                        cmd.directory.to_string_lossy()
+                    );
 
-            if path.extension() != Some(OsStr::new("trn")) {
-                continue;
-            }
+                    return None;
+                };
 
-            let _ = duplicate_train(&path).inspect_err(|err| {
-                eprintln!(
-                    "Failed to create copied train of {}",
-                    path.to_string_lossy()
-                );
+                if path.extension() != Some(OsStr::new("trn")) {
+                    return None;
+                }
 
-                print_stack_trace(err);
-            });
-        }
+                match duplicate_train(&path, &cmd) {
+                    Err(err) => {
+                        eprintln!(
+                            "Failed to create copied train of {}",
+                            path.to_string_lossy()
+                        );
+
+                        print_stack_trace(&err);
+
+                        None
+                    }
+                    Ok(nummer) => nummer,
+                }
+            })
+            .collect();
+
+        let _ = duplicate_trains(&fahrplan, &duplicated).inspect_err(|err| {
+            eprintln!("Failed to duplicate train entries inside `.fpn` file");
+
+            print_stack_trace(err);
+        });
     }
 }
 
