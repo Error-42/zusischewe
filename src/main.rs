@@ -360,7 +360,7 @@ fn modify_file(
 
         if let Some(p) = modify.uniform_probability {
             if rng.gen::<f32>() < p {
-                minutes += modify.uniform_maximum.expect("argument required by clap") as f32
+                minutes += modify.uniform_maximum.expect("argument required by clap")
                     * rng.gen::<f32>();
             }
         }
@@ -420,7 +420,7 @@ fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow:
             let (_folder, nummer) = dateiname
                 .strip_suffix(".trn")
                 .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
-                .rsplit_once(|ch| !('0'..='9').contains(&ch))
+                .rsplit_once(|ch: char| !ch.is_ascii_digit())
                 .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a `.trn` file with path consisting of at least one non-digit character, instead it points to {dateiname}"))?;
 
             if !duplicated.contains(nummer) {
@@ -455,7 +455,7 @@ fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>>
         path.with_file_name(file_name)
     };
 
-    let mut tree = read_file(&path).context("reading old `.trn` file")?;
+    let mut tree = read_file(path).context("reading old `.trn` file")?;
 
     let zug = tree.get_mut_child("Zug").context("no tag `Zug`")?;
 
@@ -538,7 +538,7 @@ fn create_backup(
     )
     .context("copying contents to `_zsw` folder")?;
 
-    fs::copy(&fahrplan, fahrplan_copy).context("copying fahrplan file")?;
+    fs::copy(fahrplan, fahrplan_copy).context("copying fahrplan file")?;
 
     Ok(())
 }
@@ -567,7 +567,7 @@ fn duplicate_trains(cmd: &Modify, fahrplan: &Path) {
                 return None;
             }
 
-            match duplicate_trn(&path, &cmd) {
+            match duplicate_trn(&path, cmd) {
                 Err(err) => {
                     eprintln!(
                         "Failed to create copied train of {}",
