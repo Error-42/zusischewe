@@ -84,11 +84,11 @@ struct Modify {
     /// Delay type U: probability of delay. Passing this argument applies delay type U.
     ///
     /// Delay type U delays the entry of trains by a uniformly chosen amount between 0 and the maximum with some probability.
-    #[arg(visible_alias = "up", long)]
-    uniform_probabilty: Option<f32>,
+    #[arg(visible_alias = "up", long, requires = "uniform_maximum")]
+    uniform_probability: Option<f32>,
     /// Delay type U: maximum delay in minutes.
-    #[arg(visible_alias = "um", long)]
-    uniform_maximum: f32,
+    #[arg(visible_alias = "um", long, requires = "uniform_probability")]
+    uniform_maximum: Option<f32>,
 
     /// Do not let the train enter early.
     #[arg(short, long, action)]
@@ -358,9 +358,9 @@ fn modify_file(
                 .sample(rng);
         }
 
-        if let Some(p) = modify.uniform_probabilty {
+        if let Some(p) = modify.uniform_probability {
             if rng.gen::<f32>() < p {
-                minutes += modify.uniform_maximum as f32 * rng.gen::<f32>();
+                minutes += modify.uniform_maximum.expect("argument required by clap") as f32 * rng.gen::<f32>();
             }
         }
 
