@@ -433,13 +433,11 @@ fn duplicate_train(path: &Path) -> anyhow::Result<()> {
     let mut tree = read_file(&path).context("reading old `.trn` file")?;
 
     let zug = tree.get_mut_child("Zug").context("no tag `Zug`")?;
-    let mut nummer = zug
+    let nummer = zug
         .attributes
-        .get("Nummer")
-        .context("tag `Zug` has no attribute `Nummer`")?
-        .clone();
+        .get_mut("Nummer")
+        .context("tag `Zug` has no attribute `Nummer`")?;
     nummer.push('B');
-    *zug.attributes.get_mut("Nummer").unwrap() = nummer;
 
     write_file(&PathBuf::from(&new_path), tree)
 }
@@ -464,48 +462,92 @@ fn print_stack_trace(err: &anyhow::Error) {
     }
 }
 
+fn create_backup(
+    cmd: &Modify,
+    dir_copy: &Option<PathBuf>,
+    fahrplan: &Path,
+    fahrplan_copy: &Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let dir_copy = dir_copy
+        .as_ref()
+        .context("failed calculation of name of `_zsw` folder")?;
+    let fahrplan_copy = fahrplan_copy
+        .as_ref()
+        .context("failed calculation of name of `_zsw` fahrplan")?;
+
+    let dir_copy_exists = dir_copy.exists();
+    let fahrplan_copy_exists = fahrplan_copy.exists();
+
+    if dir_copy_exists && !fahrplan_copy_exists {
+        bail!("`_zsw` folder exists, but `_zsw` fahrplan file doesn't");
+    }
+
+    if !dir_copy_exists && fahrplan_copy_exists {
+        bail!("`_zsw` folder doesn't exist, but `_zsw` fahrplan file does");
+    }
+
+    if dir_copy_exists {
+        return Ok(());
+    }
+
+    // I don't know how to prevent time-of-check to time-of-use bugs here.
+    // It's not worth the time preventing.
+    dir::create(dir_copy.clone(), false).context("creating `_zsw` folder")?;
+    dir::copy(
+        cmd.directory.clone(),
+        dir_copy,
+        &dir::CopyOptions::new().content_only(true),
+    )
+    .context("copying contents to `_zsw` folder")?;
+
+    fs::copy(&fahrplan, fahrplan_copy).context("copying fahrplan file")?;
+
+    Ok(())
+}
+
 fn modify(cmd: Modify) {
     let dir_copy = dir_copy_name(&cmd.directory);
     let fahrplan = cmd.directory.with_extension("fpn");
     let fahrplan_copy = fahrplan_copy_name(&fahrplan);
 
-    if !(cmd.no_copy || dir_copy.as_ref().unwrap().exists()) {
-        let dir_copy_exists = dir_copy.as_ref().unwrap().exists();
-        let fahrplan_copy_exists = fahrplan_copy.as_ref().unwrap().exists();
-
-        if dir_copy_exists != fahrplan_copy_exists {
-            panic!();
-        }
-
-        if !dir_copy_exists {
-            let to = dir_copy.unwrap();
-
-            dir::create(to.clone(), false).unwrap();
-            dir::copy(
-                cmd.directory.clone(),
-                to,
-                &dir::CopyOptions::new().content_only(true),
-            )
-            .unwrap();
-
-            fs::copy(&fahrplan, fahrplan_copy.unwrap()).unwrap();
-        }
+    if !cmd.no_copy {
+        if let Err(err) = create_backup(&cmd, &dir_copy, &fahrplan, &fahrplan_copy) {
+            eprintln!("Failed to create `_zsw` backup folder/fahrplan file, DO NOT REVERT USING `RESET` SUBCOMMAND, revert by deleting `_zsw` folder/fahrplan file");
+            print_stack_trace(&err);
+            return;
+        };
     }
 
     let mut rng = rand::thread_rng();
 
-    for file in fs::read_dir(&cmd.directory).unwrap() {
-        let path = file.unwrap().path();
+    {
+        let Ok(files) = fs::read_dir(&cmd.directory) else {
+            eprintln!(
+                "Unable to iterate over files in `{}`",
+                cmd.directory.to_string_lossy()
+            );
+            return;
+        };
 
-        if path.extension() != Some(OsStr::new("trn")) {
-            continue;
+        for file in files {
+            let Ok(path) = file.map(|f| f.path()) else {
+                eprintln!(
+                    "Error with entry trying to iterate over elements of folder `{}`",
+                    cmd.directory.to_string_lossy()
+                );
+                return;
+            };
+
+            if path.extension() != Some(OsStr::new("trn")) {
+                continue;
+            }
+
+            let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|err| {
+                eprintln!("Failed file modification, path: {}", path.to_string_lossy());
+
+                print_stack_trace(err);
+            });
         }
-
-        let _ = modify_file(&path, &cmd, &mut rng).inspect_err(|err| {
-            eprintln!("Failed file modification, path: {}", path.to_string_lossy());
-
-            print_stack_trace(err);
-        });
     }
 
     if cmd.duplicate {
@@ -515,8 +557,22 @@ fn modify(cmd: Modify) {
             print_stack_trace(err);
         });
 
-        for file in fs::read_dir(&cmd.directory).unwrap() {
-            let path = file.unwrap().path();
+        let Ok(files) = fs::read_dir(&cmd.directory) else {
+            eprintln!(
+                "Unable to iterate over files in `{}`",
+                cmd.directory.to_string_lossy()
+            );
+            return;
+        };
+
+        for file in files {
+            let Ok(path) = file.map(|f| f.path()) else {
+                eprintln!(
+                    "Error with entry trying to iterate over elements of folder `{}`",
+                    cmd.directory.to_string_lossy()
+                );
+                return;
+            };
 
             if path.extension() != Some(OsStr::new("trn")) {
                 continue;
@@ -535,9 +591,16 @@ fn modify(cmd: Modify) {
 }
 
 fn reset(cmd: Reset) {
-    let zsw_dir = dir_copy_name(&cmd.directory).unwrap();
+    let Some(zsw_dir) = dir_copy_name(&cmd.directory) else {
+        eprintln!("Failed calculation of name of `_zsw` folder");
+        return;
+    };
+
     let fahrplan = cmd.directory.with_extension("fpn");
-    let fahrplan_copy = fahrplan_copy_name(&fahrplan).unwrap();
+    let Some(fahrplan_copy) = fahrplan_copy_name(&fahrplan) else {
+        eprintln!("Failed calculation of name of `_zsw` fahrplan");
+        return;
+    };
 
     if !zsw_dir.exists() {
         eprintln!("`_zsw` folder does not exist");
@@ -549,15 +612,29 @@ fn reset(cmd: Reset) {
         return;
     }
 
-    dir::create(cmd.directory.clone(), true).unwrap();
-    dir::move_dir(
+    // I don't know how to prevent time-of-check to time-of-use bugs here.
+    // It's not worth the time preventing.
+    if let Err(err) = dir::create(cmd.directory.clone(), true) {
+        eprintln!("Failed to create empty direction in place of directory containing `.trn` files");
+        eprintln!("| reason: {err}");
+        return;
+    };
+
+    if let Err(err) = dir::move_dir(
         zsw_dir,
         cmd.directory,
         &dir::CopyOptions::new().content_only(true),
-    )
-    .unwrap();
+    ) {
+        eprintln!("Failed to copy contents back from `_zsw` folder");
+        eprintln!("| reason: {err}");
+        return;
+    }
 
-    fs::rename(fahrplan_copy, fahrplan).unwrap();
+    if let Err(err) = fs::rename(fahrplan_copy, fahrplan) {
+        eprintln!("Failed to copy back fahrplan file");
+        eprintln!("| reason: {err}");
+        return;
+    }
 }
 
 fn main() {
