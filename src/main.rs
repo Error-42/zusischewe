@@ -360,7 +360,8 @@ fn modify_file(
 
         if let Some(p) = modify.uniform_probability {
             if rng.gen::<f32>() < p {
-                minutes += modify.uniform_maximum.expect("argument required by clap") as f32 * rng.gen::<f32>();
+                minutes += modify.uniform_maximum.expect("argument required by clap") as f32
+                    * rng.gen::<f32>();
             }
         }
 
@@ -390,7 +391,7 @@ fn modify_file(
     Ok(())
 }
 
-fn duplicate_trains(path: &Path, duplicated: &HashSet<String>) -> anyhow::Result<()> {
+fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow::Result<()> {
     let mut tree = read_file(path)?;
 
     let fahrplan: &mut Element = tree
@@ -444,7 +445,7 @@ fn duplicate_trains(path: &Path, duplicated: &HashSet<String>) -> anyhow::Result
 }
 
 /// Returns the name of the train if it was duplicated
-fn duplicate_train(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>> {
+fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>> {
     let new_path = {
         let mut file_name = path
             .file_stem()
@@ -542,6 +543,53 @@ fn create_backup(
     Ok(())
 }
 
+fn duplicate_trains(cmd: &Modify, fahrplan: &Path) {
+    let Ok(files) = fs::read_dir(&cmd.directory) else {
+        eprintln!(
+            "Unable to iterate over files in `{}`",
+            cmd.directory.to_string_lossy()
+        );
+        return;
+    };
+
+    let duplicated: HashSet<_> = files
+        .filter_map(|file| {
+            let Ok(path) = file.map(|f| f.path()) else {
+                eprintln!(
+                    "Error with entry trying to iterate over elements of folder `{}`",
+                    cmd.directory.to_string_lossy()
+                );
+
+                return None;
+            };
+
+            if path.extension() != Some(OsStr::new("trn")) {
+                return None;
+            }
+
+            match duplicate_trn(&path, &cmd) {
+                Err(err) => {
+                    eprintln!(
+                        "Failed to create copied train of {}",
+                        path.to_string_lossy()
+                    );
+
+                    print_stack_trace(&err);
+
+                    None
+                }
+                Ok(nummer) => nummer,
+            }
+        })
+        .collect();
+
+    let _ = duplicate_trains_in_fpn(fahrplan, &duplicated).inspect_err(|err| {
+        eprintln!("Failed to duplicate train entries inside `.fpn` file");
+
+        print_stack_trace(err);
+    });
+}
+
 fn modify(cmd: Modify) {
     let dir_copy = dir_copy_name(&cmd.directory);
     let fahrplan = cmd.directory.with_extension("fpn");
@@ -553,6 +601,10 @@ fn modify(cmd: Modify) {
             print_stack_trace(&err);
             return;
         };
+    }
+
+    if cmd.duplicate {
+        duplicate_trains(&cmd, &fahrplan);
     }
 
     let mut rng = rand::thread_rng();
@@ -585,53 +637,6 @@ fn modify(cmd: Modify) {
                 print_stack_trace(err);
             });
         }
-    }
-
-    if cmd.duplicate {
-        let Ok(files) = fs::read_dir(&cmd.directory) else {
-            eprintln!(
-                "Unable to iterate over files in `{}`",
-                cmd.directory.to_string_lossy()
-            );
-            return;
-        };
-
-        let duplicated: HashSet<_> = files
-            .filter_map(|file| {
-                let Ok(path) = file.map(|f| f.path()) else {
-                    eprintln!(
-                        "Error with entry trying to iterate over elements of folder `{}`",
-                        cmd.directory.to_string_lossy()
-                    );
-
-                    return None;
-                };
-
-                if path.extension() != Some(OsStr::new("trn")) {
-                    return None;
-                }
-
-                match duplicate_train(&path, &cmd) {
-                    Err(err) => {
-                        eprintln!(
-                            "Failed to create copied train of {}",
-                            path.to_string_lossy()
-                        );
-
-                        print_stack_trace(&err);
-
-                        None
-                    }
-                    Ok(nummer) => nummer,
-                }
-            })
-            .collect();
-
-        let _ = duplicate_trains(&fahrplan, &duplicated).inspect_err(|err| {
-            eprintln!("Failed to duplicate train entries inside `.fpn` file");
-
-            print_stack_trace(err);
-        });
     }
 }
 
