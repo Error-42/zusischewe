@@ -30,7 +30,7 @@ enum Command {
     Reset(Reset),
 }
 
-/// Modify the acceleration of all trains.
+/// TODO
 #[derive(Debug, Parser)]
 struct Modify {
     /// Path of the folder containing the timetable files. This folder should contain '.trn' and '.timetable.xml' files.
@@ -111,7 +111,9 @@ struct Modify {
     #[arg(short = 'D', long, action)]
     duplicate: bool,
 
-    /// TODO
+    /// Don't duplicate trains in certain groups, a group is matched if the group name contains the text specified here.
+    /// 
+    /// More formally, a group is matched if the name specified here is a substring of the group name. A string s is a substring of a string t if s can be obtained from t by deletion of several (possibly, zero or all) characters from the beginning and several (possibly, zero or all) characters from the end.
     #[arg(visible_alias = "!Dg", long, num_args=0..)]
     dont_duplicate_group: Vec<String>,
 }
