@@ -60,28 +60,43 @@ struct Modify {
     #[arg(short = 't', long, default_value = "0.25")]
     mu_needed: f32,
 
-    /// Delay type A: probability of delay. Passing this argument applies delay type A.
+    /// Delays entry of trains using an exponential function with the given probability.
     ///
-    /// Delay type A delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
-    #[arg(visible_alias = "dp", long)]
-    delay_probability: Option<f32>,
-    /// Delay type A: amplitude of delay.
-    #[arg(visible_alias = "da", long, default_value = "360")]
-    delay_amplitude: f32,
-    /// Delay type A: λ parameter of delay.
-    #[arg(visible_alias = "dl", long, default_value = "3")]
-    delay_lambda: f32,
+    /// Delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
+    #[arg(
+        visible_alias = "ep",
+        long,
+        requires = "exponential_amplitude",
+        requires = "exponential_lambda"
+    )]
+    exponential_probability: Option<f32>,
+    /// Amplitude using in the exponential function, see --exponential_probability for further information.
+    #[arg(
+        visible_alias = "ea",
+        long,
+        requires = "exponential_probability",
+        requires = "exponential_lambda"
+    )]
+    exponential_amplitude: Option<f32>,
+    /// λ parameter of the exponential function, see --exponential_probability for further information.
+    #[arg(
+        visible_alias = "el",
+        long,
+        requires = "exponential_probability",
+        requires = "exponential_amplitude"
+    )]
+    exponential_lambda: Option<f32>,
 
-    /// Delay type B: mean delay in minutes. Passing this argument applies delay type B.
+    /// Delay type B: mean delay in minutes. Passing this argument applies delay type B. TODO: style exponential
     ///
     /// Delay type B delays the entry of trains according to a normal distribution.
-    #[arg(visible_alias = "bm", long)]
+    #[arg(visible_alias = "bm", long, requires = "bell_deviation")]
     bell_mean: Option<f32>,
     /// Delay type B: stardard deviation of delay in minutes.
-    #[arg(visible_alias = "bd", long, default_value = "5")]
-    bell_deviation: f32,
+    #[arg(visible_alias = "bd", long, requires = "bell_mean")]
+    bell_deviation: Option<f32>,
 
-    /// Delay type U: probability of delay. Passing this argument applies delay type U.
+    /// Delay type U: probability of delay. Passing this argument applies delay type U. TODO: style exponential
     ///
     /// Delay type U delays the entry of trains by a uniformly chosen amount between 0 and the maximum with some probability.
     #[arg(visible_alias = "up", long, requires = "uniform_maximum")]
@@ -345,17 +360,24 @@ fn modify_file(
     {
         let mut minutes: f32 = 0.0;
 
-        if let Some(p) = modify.delay_probability {
+        if let Some(p) = modify.exponential_probability {
             let val: f32 = rng.gen();
 
             if val < p {
-                minutes +=
-                    modify.delay_amplitude * ((modify.delay_lambda * rng.gen::<f32>()).exp() - 1.0);
+                let amplitude = modify
+                    .exponential_amplitude
+                    .expect("argument required by clap");
+
+                let lambda = modify
+                    .exponential_lambda
+                    .expect("argument required by clap");
+
+                minutes += amplitude * ((lambda * rng.gen::<f32>()).exp() - 1.0);
             }
         }
 
         if let Some(bell_mean) = modify.bell_mean {
-            minutes += rand_distr::Normal::new(bell_mean, modify.bell_deviation)
+            minutes += rand_distr::Normal::new(bell_mean, modify.bell_deviation.expect("argument required by clap"))
                 .context("unable to generate normal distribution for random number sampling with given parameters")?
                 .sample(rng);
         }
