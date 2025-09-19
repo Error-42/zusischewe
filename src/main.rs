@@ -30,10 +30,16 @@ enum Command {
     Reset(Reset),
 }
 
-/// TODO
+/// Modify the timetables of trains.
+/// 
+/// By default, this creates a backup folder and `.fpn` file, so it can be reverted. This can be bypassed with the --no-copy option.
 #[derive(Debug, Parser)]
 struct Modify {
-    /// Path of the folder containing the timetable files. This folder should contain '.trn' and '.timetable.xml' files.
+    /// Path of the folder containing the timetable files.
+    /// 
+    /// This folder should contain '.trn' and '.timetable.xml' files. An `.fpn` file should exist with the same name as the folder.
+    /// 
+    /// Unfortunately, it is currently not possible to have the `.fpn` file named differently. 
     directory: PathBuf,
 
     /// Multiply the acceleration/deceleration of all trains by this factor.
@@ -60,9 +66,11 @@ struct Modify {
     #[arg(short = 't', long, default_value = "0.25")]
     mu_needed: f32,
 
-    /// Delays entry of trains using an exponential function with the given probability.
+    /// Delays the entry of trains using an exponential function with the given probability.
     ///
     /// Delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
+    /// 
+    /// See also: --exponential-amplitude, --exponential-lambda.
     #[arg(
         visible_alias = "ep",
         long,
@@ -70,7 +78,7 @@ struct Modify {
         requires = "exponential_lambda"
     )]
     exponential_probability: Option<f32>,
-    /// Amplitude using in the exponential function, see --exponential_probability for further information.
+    /// Amplitude used in the exponential function, see --exponential-probability for further information.
     #[arg(
         visible_alias = "ea",
         long,
@@ -78,7 +86,7 @@ struct Modify {
         requires = "exponential_lambda"
     )]
     exponential_amplitude: Option<f32>,
-    /// λ parameter of the exponential function, see --exponential_probability for further information.
+    /// λ parameter of the exponential function, see --exponential-probability for further information.
     #[arg(
         visible_alias = "el",
         long,
@@ -87,21 +95,21 @@ struct Modify {
     )]
     exponential_lambda: Option<f32>,
 
-    /// Delay type B: mean delay in minutes. Passing this argument applies delay type B. TODO: style exponential
-    ///
-    /// Delay type B delays the entry of trains according to a normal distribution.
+    /// Delays the entry of trains according to a normal distribution with the given mean in minutes.
+    /// 
+    /// See also --bell-deviation.
     #[arg(visible_alias = "bm", long, requires = "bell_deviation")]
     bell_mean: Option<f32>,
-    /// Delay type B: stardard deviation of delay in minutes.
+    /// Standard deviation used in the normal distribution in minutes, see --bell-mean for further information.
     #[arg(visible_alias = "bd", long, requires = "bell_mean")]
     bell_deviation: Option<f32>,
 
-    /// Delay type U: probability of delay. Passing this argument applies delay type U. TODO: style exponential
-    ///
-    /// Delay type U delays the entry of trains by a uniformly chosen amount between 0 and the maximum with some probability.
+    /// Delays the entry of trains according to a uniform distribution with the given probability.
+    /// 
+    /// With the given probability, a delay is chosing uniformly in the interval [0, M] where M is the value of --uniform-maximum.
     #[arg(visible_alias = "up", long, requires = "uniform_maximum")]
     uniform_probability: Option<f32>,
-    /// Delay type U: maximum delay in minutes.
+    /// Maximum delay used in the uniform distribution in minutes. See --uniform-probability for further information.
     #[arg(visible_alias = "um", long, requires = "uniform_probability")]
     uniform_maximum: Option<f32>,
 
