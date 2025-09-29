@@ -31,15 +31,15 @@ enum Command {
 }
 
 /// Modify the timetables of trains.
-/// 
+///
 /// By default, this creates a backup folder and `.fpn` file, so it can be reverted. This can be bypassed with the --no-copy option.
 #[derive(Debug, Parser)]
 struct Modify {
     /// Path of the folder containing the timetable files.
-    /// 
+    ///
     /// This folder should contain '.trn' and '.timetable.xml' files. An `.fpn` file should exist with the same name as the folder.
-    /// 
-    /// Unfortunately, it is currently not possible to have the `.fpn` file named differently. 
+    ///
+    /// Unfortunately, it is currently not possible to have the `.fpn` file named differently.
     directory: PathBuf,
 
     /// Multiply the acceleration/deceleration of all trains by this factor.
@@ -69,7 +69,7 @@ struct Modify {
     /// Delays the entry of trains using an exponential function with the given probability.
     ///
     /// Delays the entry of trains by A(exp(μr)-1) where A is the amplitude and r is a random real in the interval [0, 1).
-    /// 
+    ///
     /// See also: --exponential-amplitude, --exponential-lambda.
     #[arg(
         visible_alias = "ep",
@@ -96,7 +96,7 @@ struct Modify {
     exponential_lambda: Option<f32>,
 
     /// Delays the entry of trains according to a normal distribution with the given mean in minutes.
-    /// 
+    ///
     /// See also --bell-deviation.
     #[arg(visible_alias = "bm", long, requires = "bell_deviation")]
     bell_mean: Option<f32>,
@@ -105,7 +105,7 @@ struct Modify {
     bell_deviation: Option<f32>,
 
     /// Delays the entry of trains according to a uniform distribution with the given probability.
-    /// 
+    ///
     /// With the given probability, a delay is chosing uniformly in the interval [0, M] where M is the value of --uniform-maximum.
     #[arg(visible_alias = "up", long, requires = "uniform_maximum")]
     uniform_probability: Option<f32>,
@@ -484,7 +484,7 @@ fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<OsString
         .file_stem()
         .context("path to train has no file name")?
         .to_os_string();
-    
+
     let new_path = {
         let mut file_name = file_stem.clone();
         file_name.push("B.trn");
