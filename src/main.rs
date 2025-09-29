@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fs::{self, File},
     path::{Path, PathBuf},
 };
@@ -423,7 +423,9 @@ fn modify_file(
     Ok(())
 }
 
-fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow::Result<()> {
+fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<OsString>) -> anyhow::Result<()> {
+    dbg!(duplicated);
+
     let mut tree = read_file(path)?;
 
     let fahrplan: &mut Element = tree
@@ -449,14 +451,13 @@ fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow:
                 .get_mut("Dateiname")
                 .context("`Datei` inside `Zug` has no attribute `Dateiname`")?;
 
-            // TODO: This way of getting a number causes a bug if the train has multiple numbers e.g. IR2481_2488 will be incorrectly calculated to have the number 2488, when it should have the number 2481. Really, the program should just use the file name for reference.
-            let (_folder, nummer) = dateiname
-                .strip_suffix(".trn")
-                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
-                .rsplit_once(|ch: char| !ch.is_ascii_digit())
-                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a `.trn` file with path consisting of at least one non-digit character, instead it points to {dateiname}"))?;
+            let file_name = Path::new(OsStr::new(dateiname))
+                .file_stem()
+                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a path with a file stem (portion of the file name without the extension), instead it points to {dateiname}"))?;
 
-            if !duplicated.contains(nummer) {
+            dbg!(file_name);
+
+            if !duplicated.contains(file_name) {
                 continue;
             }
 
@@ -477,13 +478,15 @@ fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow:
     write_file(path, &tree)
 }
 
-/// Returns the name of the train if it was duplicated
-fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>> {
+/// Returns the file stem of the path if the train was duplicated
+fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<OsString>> {
+    let file_stem = path
+        .file_stem()
+        .context("path to train has no file name")?
+        .to_os_string();
+    
     let new_path = {
-        let mut file_name = path
-            .file_stem()
-            .context("path to train has no file name")?
-            .to_os_string();
+        let mut file_name = file_stem.clone();
         file_name.push("B.trn");
         path.with_file_name(file_name)
     };
@@ -501,16 +504,9 @@ fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<String>>
         return Ok(None);
     }
 
-    let nummer = zug
-        .attributes
-        .get_mut("Nummer")
-        .context("tag `Zug` has no attribute `Nummer`")?;
-    let original_nummer = nummer.clone();
-    nummer.push('B');
-
     write_file(&PathBuf::from(&new_path), &tree).context("writing new `.trn` file")?;
 
-    Ok(Some(original_nummer))
+    Ok(Some(file_stem))
 }
 
 fn dir_copy_name(dir: &Path) -> Option<PathBuf> {
@@ -611,7 +607,7 @@ fn duplicate_trains(cmd: &Modify, fahrplan: &Path) {
 
                     None
                 }
-                Ok(nummer) => nummer,
+                Ok(file_name) => file_name,
             }
         })
         .collect();
