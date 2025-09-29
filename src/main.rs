@@ -449,6 +449,7 @@ fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<String>) -> anyhow:
                 .get_mut("Dateiname")
                 .context("`Datei` inside `Zug` has no attribute `Dateiname`")?;
 
+            // TODO: This way of getting a number causes a bug if the train has multiple numbers e.g. IR2481_2488 will be incorrectly calculated to have the number 2488, when it should have the number 2481. Really, the program should just use the file name for reference.
             let (_folder, nummer) = dateiname
                 .strip_suffix(".trn")
                 .with_context(|| format!("expected `Dateiname` inside `Zug` to point to `.trn` file, instead it points to {dateiname}"))?
