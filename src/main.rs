@@ -424,8 +424,6 @@ fn modify_file(
 }
 
 fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<OsString>) -> anyhow::Result<()> {
-    dbg!(duplicated);
-
     let mut tree = read_file(path)?;
 
     let fahrplan: &mut Element = tree
@@ -454,8 +452,6 @@ fn duplicate_trains_in_fpn(path: &Path, duplicated: &HashSet<OsString>) -> anyho
             let file_name = Path::new(OsStr::new(dateiname))
                 .file_stem()
                 .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a path with a file stem (portion of the file name without the extension), instead it points to {dateiname}"))?;
-
-            dbg!(file_name);
 
             if !duplicated.contains(file_name) {
                 continue;
