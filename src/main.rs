@@ -500,6 +500,12 @@ fn duplicate_trn(path: &Path, modify: &Modify) -> anyhow::Result<Option<OsString
         return Ok(None);
     }
 
+    let nummer = zug
+        .attributes
+        .get_mut("Nummer")
+        .context("tag `Zug` has no attribute `Nummer`")?;
+    nummer.push('B');
+
     write_file(&PathBuf::from(&new_path), &tree).context("writing new `.trn` file")?;
 
     Ok(Some(file_stem))
