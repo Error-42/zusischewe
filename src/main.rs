@@ -12,9 +12,41 @@ use rand::Rng;
 use rand_distr::Distribution;
 use xmltree::{Element, XMLNode};
 
-/// ZuSi schlechtes Wetter
+/// zsw
 ///
 /// Cause general chaos.
+/// 
+/// The main features of the program are:
+/// 
+/// - delay the entry of trains into the simulation (e.g. --uniform-probability, --uniform_maximum)
+/// - make trains accelerate (and decelerate) slower (e.g. --fricition)
+/// - duplicate trains for more traffic (--duplicated-trains)
+/// 
+/// The code doesn't really understand Zusi file structure and is more similar to a glorified complicated find-replace. As such it doesn't use the personal data directory (as it should), but instead creates a backup of the old data and modifies the data in place. (Maybe make a backup of your game before running this program? As you can tell, it's not well programmed, so you probably shouldn't trust it.)
+/// 
+/// ## Example usage
+/// 
+/// First run the following command inside `...\_ZusiData\Timetables\Deutschland\VDE8`:
+/// 
+/// ```cmd
+/// zsw modify Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt --friction 0.2 --uniform-probability 1 --uniform-maximum 15 --duplicate --dont-duplicate-group G16 --dont-duplicate-group G32 --dont-duplicate-group SV --dont-duplicate-group F45
+/// ```
+/// 
+/// This creates a `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt_zsw` folder and `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt_zsw.fpn` file. This is the backup of the old data.
+/// 
+/// The file `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt.fpn` and folder `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt` were modified such that
+/// 
+/// - the trains accelerate and decelerate as the fricition coefficient were 0.2
+/// - the entry of trains is randomly delayed by up to 15 minutes
+/// - for every train, a second copy is created for more traffic; however, the trains in groups G16, G32, SV and F45 aren't duplicated to avoid deadlocks
+/// 
+/// Start Zusi and hopefully have a deadlock free ride.
+/// 
+/// To reset all modifications, finally now run
+/// 
+/// ```cmd
+/// zsw reset Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt
+/// ```
 #[derive(Debug, Parser)]
 #[clap(version)]
 struct Cli {
@@ -32,7 +64,7 @@ enum Command {
 
 /// Modify the timetables of trains.
 ///
-/// By default, this creates a backup folder and `.fpn` file, so it can be reverted. This can be bypassed with the --no-copy option.
+/// By default, this creates a backup folder and `.fpn` file, so it can be reverted. This can be bypassed with the --no-copy option. If a backup folder and `.fpn` file already exist, a new one isn't created and they're left alone.
 #[derive(Debug, Parser)]
 struct Modify {
     /// Path of the folder containing the timetable files.
