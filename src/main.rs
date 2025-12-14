@@ -171,6 +171,14 @@ struct Modify {
     /// More formally, a group is matched if the name specified here is a substring of the group name. A string s is a substring of a string t if s can be obtained from t by deletion of several (possibly, zero or all) characters from the beginning and several (possibly, zero or all) characters from the end.
     #[arg(visible_alias = "!Dg", long, num_args=0..)]
     dont_duplicate_group: Vec<String>,
+
+    /// Remove train from simulation.
+    ///
+    /// Useful for dealing with trains that would block things
+    ///
+    /// TODO: implement
+    #[arg(short = 'C', long, num_args=0..)]
+    cancel_train: Vec<OsString>,
 }
 
 /// Reset using the `_zsw` folder.
@@ -653,6 +661,70 @@ fn duplicate_trains(cmd: &Modify, fahrplan: &Path) {
     });
 }
 
+fn cancel_trains(cmd: &Modify, path: &Path) -> anyhow::Result<()> {
+    // This only cancels trains in the `fpl` file.
+    //
+    // Actually removing the unnecessary `.trn` files is unnecessary and carries risk (as does any file deletion operation).
+
+    let mut tree = read_file(path)?;
+
+    let fahrplan: &mut Element = tree
+        .get_mut_child("Fahrplan")
+        .context("no tag `Fahrplan`")?;
+
+    let new_children: anyhow::Result<Vec<&XMLNode>> = fahrplan
+        .children
+        .iter()
+        .filter_map(|child| {
+            let XMLNode::Element(e) = child else {
+                return Some(Ok(child));
+            };
+
+            if e.name != "Zug" {
+                return Some(Ok(child));
+            }
+
+            let datei = match e.get_child("Datei").context("no tag `Datei` inside `Zug`") {
+                Ok(ok) => ok,
+                Err(err) => return Some(Err(err)),
+            };
+
+            let dateiname = match datei
+                .attributes
+                .get("Dateiname")
+                .context("`Datei` inside `Zug` has no attribute `Dateiname`")
+            {
+                Ok(ok) => ok,
+                Err(err) => return Some(Err(err)),
+            };
+
+            let train_number = match Path::new(OsStr::new(dateiname))
+                .file_stem()
+                .with_context(|| format!("expected `Dateiname` inside `Zug` to point to a path with a file stem (portion of the file name without the extension), instead it points to {dateiname}"))
+            {
+                Ok(ok) => ok,
+                Err(err) => return Some(Err(err)),
+            };
+
+            dbg!(&train_number);
+
+            // This is a linear search, but optimsation is probably not needed.
+            match cmd.cancel_train.iter().any(|t| t == train_number) {
+                false => Some(Ok(child)),
+                true => None,
+            }
+        })
+        .collect();
+
+    let new_children = new_children?;
+
+    fahrplan.children = new_children.iter().map(|child| (*child).clone()).collect();
+
+    write_file(path, &tree)?;
+
+    Ok(())
+}
+
 fn modify(cmd: Modify) {
     let dir_copy = dir_copy_name(&cmd.directory);
     let fahrplan = cmd.directory.with_extension("fpn");
@@ -664,6 +736,13 @@ fn modify(cmd: Modify) {
             print_stack_trace(&err);
             return;
         };
+    }
+
+    if !cmd.cancel_train.is_empty() {
+        if let Err(err) = cancel_trains(&cmd, &fahrplan) {
+            eprintln!("Failed to cancel trains");
+            print_stack_trace(&err);
+        }
     }
 
     if cmd.duplicate {
