@@ -825,6 +825,8 @@ fn reset(cmd: Reset) {
     if let Err(err) = fs::rename(fahrplan_copy, fahrplan) {
         eprintln!("Failed to copy back fahrplan file");
         eprintln!("| reason: {err}");
+        // For symmetry and in case code gets added below.
+        #[expect(clippy::needless_return)]
         return;
     }
 }
