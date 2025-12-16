@@ -706,8 +706,6 @@ fn cancel_trains(cmd: &Modify, path: &Path) -> anyhow::Result<()> {
                 Err(err) => return Some(Err(err)),
             };
 
-            dbg!(&train_number);
-
             // This is a linear search, but optimsation is probably not needed.
             match cmd.cancel_train.iter().any(|t| t == train_number) {
                 false => Some(Ok(child)),
