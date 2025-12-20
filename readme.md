@@ -7,8 +7,8 @@ It's botched together and doesn't really work very well, but in case you want to
 The main features of the program are:
 
 - delay the entry of trains into the simulation (e.g. --uniform-probability, --uniform_maximum)
-- make trains accelerate (and decelerate) slower (e.g. --fricition)
-- duplicate trains for more traffic (--duplicated-trains)
+- make trains accelerate (and decelerate) slower (e.g. --friction)
+- duplicate trains for more traffic (--duplicate)
 
 Questions nobody asked:
 
@@ -17,10 +17,11 @@ Questions nobody asked:
 - Does this cause data loss? – Usually not.
 - Should you trust this to not cause data loss and not make a backup of the data? – No.
 - Does the program understand the files it works with and the connections between them? – No.
-- Does the program use how the official timetables are layed out? – Yes.
+- Does the program use how the official timetables are laid out? – Yes.
 - Does this mean it will break very easily? – Yes.
 - Is this a command line application? – Yes.
 - Should I know what a command line application is? – To use the program, yes.
 - Is it really easy to deadlock Zusi with this? – Yes.
+- Does Zusi routesetting just break sometimes with this? – Yes.
 
 For usage, run with `--help`.
