@@ -12,7 +12,7 @@ use rand::Rng;
 use rand_distr::Distribution;
 use xmltree::{Element, XMLNode};
 
-/// zsw
+/// Zusischewe
 ///
 /// Cause general chaos.
 ///
@@ -29,7 +29,7 @@ use xmltree::{Element, XMLNode};
 /// First run the following command inside `...\_ZusiData\Timetables\Deutschland\VDE8`:
 ///
 /// ```cmd
-/// zsw modify Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt --friction 0.2 --uniform-probability 1 --uniform-maximum 15 --duplicate --dont-duplicate-group G16 --dont-duplicate-group G32 --dont-duplicate-group SV --dont-duplicate-group F45
+/// zusischewe modify Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt --friction 0.2 --uniform-probability 1 --uniform-maximum 15 --duplicate --dont-duplicate-group G16 --dont-duplicate-group G32 --dont-duplicate-group SV --dont-duplicate-group F45
 /// ```
 ///
 /// This creates a `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt_zsw` folder and `Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt_zsw.fpn` file. This is the backup of the old data.
@@ -45,7 +45,7 @@ use xmltree::{Element, XMLNode};
 /// To reset all modifications, finally now run
 ///
 /// ```cmd
-/// zsw reset Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt
+/// zusischewe reset Erfurt-Theuern_2025_10-14Uhr_Fiktiver-D-Takt
 /// ```
 #[derive(Debug, Parser)]
 #[clap(version)]

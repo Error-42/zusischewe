@@ -1,4 +1,4 @@
-# zsw
+# Zusischewe
 
 A program to cause chaos in Zusi.
 
