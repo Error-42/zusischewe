@@ -1,6 +1,6 @@
 # Zusischewe
 
-A program to cause chaos in Zusi.
+A command line application to cause chaos in Zusi.
 
 It's botched together and doesn't really work very well, but in case you want to try and use it, go ahead.
 
@@ -21,7 +21,6 @@ Questions nobody asked:
 - Does the program understand the files it works with and the connections between them? – No.
 - Does the program use how the official timetables are laid out? – Yes.
 - Does this mean it will break very easily? – Yes.
-- Is this a command line application? – Yes.
 - Should I know what a command line application is? – To use the program, yes.
 - Is it really easy to deadlock Zusi with this? – Yes.
 - Does Zusi routesetting just break sometimes with this? – Yes.
