@@ -10,6 +10,8 @@ The main features of the program are:
 - make trains accelerate (and decelerate) slower (e.g. --friction)
 - duplicate trains for more traffic (--duplicate)
 
+**Make a backup of `_ZusiData` before usage. This shouldn't be required, but I don't trust myself to not have bugs.**
+
 Questions nobody asked:
 
 - Does the program understand what the personal data directory is? – No.
